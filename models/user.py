@@ -1,28 +1,37 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator, validator
 from typing import Optional
 
 class UsuarioBase(BaseModel):
     id: str
-    nome: str
-    email: str
+    username: str
+    email: Optional[str] = None
     telefone: str
-    senha: str
-    endereco : str
+    endereco: str
+    tipo: str  # "cidadao" ou "cooperativa"
 
 class UsuarioCidadao(UsuarioBase):
-    tipo: str = "cidadão"
+    tipo: str = "cidadao"  
+    cpf: str
+    
 
 class UsuarioCooperativa(UsuarioBase):
-    cooperativa_id: str
-    tipo: str = "cooperativa"
+    tipo: str = "cooperativa" 
     cnpj: str
     nome_cooperativa: str
 
-class UsuarioCatador(UsuarioBase):
-    autonomo: bool
-    cooperativa_id: Optional[int] = None  
-    tipo: str = "catador"
+    @root_validator
+    def validar_cooperativa(cls, values):
+        cnpj = values.get("cnpj")
+        nome_cooperativa = values.get("nome_cooperativa")
 
+        if not cnpj or not nome_cooperativa:
+            raise ValueError("Cooperativas devem fornecer cnpj e nome_cooperativa.")
+        return values
 
+class UsuarioCreate(BaseModel):
+    senha: str
 
-
+class UsuarioEntrar(BaseModel):
+    senha: str
+    email: Optional[str] = None  # Entrada com email é opcional
+    telefone: str  # Mas telefone é obrigatório
