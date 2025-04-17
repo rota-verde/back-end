@@ -1,6 +1,5 @@
-from fastapi import FastAPI
-import firebase_admin
-from firebase_admin import credentials, firestore
+from fastapi import FastAPI # type: ignore
+from firebase_admin import credentials, firestore # type: ignore
 from models import Usuario
 from services.firestore import db
 from routes import userRoutes
