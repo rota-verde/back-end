@@ -12,6 +12,6 @@ def verify_token(request: Request):
 
     try:
         decoded_token = auth.verify_id_token(id_token)
-        return decoded_token  # pode retornar decoded_token["uid"] se quiser só o ID
+        return decoded_token  
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
