@@ -1,17 +1,19 @@
-from fastapi import FastAPI # type: ignore
-from firebase_admin import credentials, firestore # type: ignore
+from fastapi import FastAPI
+import firebase_admin
+from firebase_admin import credentials, firestore
 from models import Usuario
 from services.firestore import db
-from routes import userRoutes
+from routes import rotaRoutes, userRoutes
 
 app = FastAPI()
-app.include_router(Usuario.router, prefix="/api")
 
 @app.get("/")
 def read_root():
     return {"message": "API funcionando!"}
 
 app.include_router(userRoutes.router)
+app.include_router(rotaRoutes.router)
+
 
 if __name__ == "__main__":
     import uvicorn
