@@ -4,7 +4,11 @@ from services.auth import verify_token
 from services.firestore import db
 from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/users",
+    tags=["users"]
+)
+
 
 @router.post("/cadastro")
 def register(usuario: Union[UsuarioCidadao, UsuarioCooperativa]):

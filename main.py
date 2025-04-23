@@ -8,7 +8,7 @@ from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate
 
 app = FastAPI()
 
-@app.get("/")
+@app.get("/home")
 def read_root():
     return {"message": "API funcionando!"}
 
