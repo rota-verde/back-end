@@ -1,4 +1,4 @@
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel
 from typing import Optional
 
 class UsuarioBase(BaseModel):
@@ -14,19 +14,19 @@ class UsuarioCidadao(UsuarioBase):
     cpf: str
     
 
+from pydantic import BaseModel, field_validator, model_validator
+
 class UsuarioCooperativa(UsuarioBase):
-    tipo: str = "cooperativa" 
-    cnpj: str
-    nome_cooperativa: str
+    cnpj: Optional[str]
+    nome_cooperativa: Optional[str]
 
-    @root_validator
-    def validar_cooperativa(cls, values):
-        cnpj = values.get("cnpj")
-        nome_cooperativa = values.get("nome_cooperativa")
+    @model_validator(mode="after")
+    def validar_cooperativa(self):
+        if self.tipo == "cooperativa":
+            if not self.cnpj or not self.nome_cooperativa:
+                raise ValueError("Cooperativas devem fornecer cnpj e nome_cooperativa.")
+        return self
 
-        if not cnpj or not nome_cooperativa:
-            raise ValueError("Cooperativas devem fornecer cnpj e nome_cooperativa.")
-        return values
 
 class UsuarioCreate(BaseModel):
     senha: str

@@ -1,13 +1,17 @@
-from typing import Literal
+from typing import Literal, Union
 from fastapi import APIRouter, Body, Depends, HTTPException
 from services.auth import verify_token
 from services.firestore import db
-from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate, UsuarioPrefeitura
+from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate
 
 router = APIRouter()
 
 @router.post("/cadastro")
-def register(usuario: UsuarioCreate):
+def register(usuario: Union[UsuarioCidadao, UsuarioCooperativa]):
+    # Verifica se o usuário já existe
+    existing_user = db.collection("usuarios").document(usuario.tipo).collection("dados").where("email", "==", usuario.email).get()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
     tipo = usuario.tipo.lower()
 
     if tipo == "cidadao":
@@ -26,7 +30,7 @@ def register(usuario: UsuarioCreate):
 
 
 @router.post("/login")
-def login(user: UsuarioCidadao | UsuarioCooperativa):
+def login(user: Union[UsuarioCidadao, UsuarioCooperativa]):
     users_ref = db.collection("usuarios")
     query = users_ref.where("email", "==", user.email).get()
     if not query:
