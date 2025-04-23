@@ -3,8 +3,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from services.firestore import db
 from routes import rotaRoutes,  usersRoutes
-from services.auth import verify_token
-from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate
+from models.user import UsuarioCidadao, UsuarioCooperativa
 
 app = FastAPI()
 

@@ -2,7 +2,7 @@ from typing import Literal, Union
 from fastapi import APIRouter, Body, Depends, HTTPException
 from services.auth import verify_token
 from services.firestore import db
-from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate
+from models.user import UsuarioCidadao, UsuarioCooperativa,  UsuarioCreateCidadao, UsuarioCreateCooperativa
 
 router = APIRouter(
     prefix="/users",
@@ -11,8 +11,7 @@ router = APIRouter(
 
 
 @router.post("/cadastro")
-def register(usuario: Union[UsuarioCidadao, UsuarioCooperativa]):
-    # Verifica se o usuário já existe
+def register(usuario: Union[UsuarioCreateCidadao, UsuarioCreateCooperativa]):
     existing_user = db.collection("usuarios").document(usuario.tipo).collection("dados").where("email", "==", usuario.email).get()
     if existing_user:
         raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
@@ -47,7 +46,8 @@ def login(user: Union[UsuarioCidadao, UsuarioCooperativa]):
 
 
 @router.get("/perfil")
-def perfil_usuario(usuario: dict = Depends(verify_token)):
+#Autenticação off por enquanto = Depends(verify_token)
+def perfil_usuario(usuario: dict):
     return {
         "mensagem": f"Olá, {usuario.get('name', 'usuário')}!",
         "uid": usuario["uid"],
@@ -57,8 +57,8 @@ def perfil_usuario(usuario: dict = Depends(verify_token)):
 @router.put("/perfil/atualizar")
 def atualizar_perfil(
     tipo: Literal["cidadao", "cooperativa"],
-    dados_atualizados: dict = Body(...),
-    user_data: dict = Depends(verify_token)
+    user_data: dict,
+    dados_atualizados: dict = Body(...)
 ):
     try:
         doc_ref = (
@@ -73,7 +73,8 @@ def atualizar_perfil(
         raise HTTPException(status_code=400, detail=f"Erro ao atualizar: {e}")
     
 @router.post("/cadastro/residencia")
-def cadastrar_residencia(usuario: UsuarioCidadao, endereco: str, token: str = Depends(verify_token)):
+#token: str = Depends(verify_token)
+def cadastrar_residencia(usuario: UsuarioCidadao, endereco: str):
     existing_residence = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
     if existing_residence:
         raise HTTPException(status_code=400, detail="Residência já cadastrada.")
@@ -82,7 +83,8 @@ def cadastrar_residencia(usuario: UsuarioCidadao, endereco: str, token: str = De
     return {"message": "Residência cadastrada com sucesso!"}
 
 @router.get("/rotas_publicadas")
-def visualizar_rotas_publicadas(usuario: UsuarioCidadao, token: str = Depends(verify_token)):
+#, token: str = Depends(verify_token)
+def visualizar_rotas_publicadas(usuario: UsuarioCidadao):
     rotas = db.collection("rotas").where("data", "==", "hoje").where("residencias", "array_contains", usuario.endereco).get()
     if not rotas:
         raise HTTPException(status_code=404, detail="Nenhuma rota encontrada para o dia de hoje.")
@@ -94,7 +96,7 @@ def visualizar_rotas_publicadas(usuario: UsuarioCidadao, token: str = Depends(ve
 
 # Cidadão: Confirmar se o caminhão passou
 @router.post("/confirmar_coleta")
-def confirmar_coleta(usuario: UsuarioCidadao, endereco: str, coleta_confirmada: bool, token: str = Depends(verify_token)):
+def confirmar_coleta(usuario: UsuarioCidadao, endereco: str, coleta_confirmada: bool):
     # Verifica se a residência existe
     residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
     if not residencia_ref:
@@ -104,7 +106,7 @@ def confirmar_coleta(usuario: UsuarioCidadao, endereco: str, coleta_confirmada: 
     return {"message": "Coleta confirmada com sucesso!"}
 
 @router.post("/adicionar_lixo_reciclavel")
-def adicionar_lixo_reciclavel(usuario: UsuarioCidadao, endereco: str, reciclavel: bool, token: str = Depends(verify_token)):
+def adicionar_lixo_reciclavel(usuario: UsuarioCidadao, endereco: str, reciclavel: bool):
     residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
     if not residencia_ref:
         raise HTTPException(status_code=400, detail="Residência não encontrada.")

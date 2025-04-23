@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 @router.post("/criar_rota", response_model=RotaResponse)
-def criar_rota(rota: RotaCreate, user=UsuarioCooperativa, token: str = Depends(verify_token)):
+def criar_rota(rota: RotaCreate, user=UsuarioCooperativa):
     if user.get("tipo") != "cooperativa":
         raise HTTPException(status_code=403, detail="Apenas cooperativas podem criar rotas.")
     if not user.get("id"):
@@ -40,7 +40,7 @@ def obter_rota(rota_id: str):
 
 
 @router.patch("/{rota_id}/finalizar")
-def finalizar_rota(rota_id: str, relatorio: str, user=UsuarioCooperativa, token: str = Depends(verify_token)):
+def finalizar_rota(rota_id: str, relatorio: str, user=UsuarioCooperativa):
     if user.get("tipo") != "cooperativa":
         raise HTTPException(status_code=403, detail="Apenas cooperativas podem finalizar rotas.")
     if not user.get("id"):
@@ -58,7 +58,7 @@ def finalizar_rota(rota_id: str, relatorio: str, user=UsuarioCooperativa, token:
 
 
 @router.patch("/{rota_id}/feedback")
-def adicionar_feedback(rota_id: str, feedback: str, user=UsuarioCooperativa, token: str = Depends(verify_token)):
+def adicionar_feedback(rota_id: str, feedback: str, user=UsuarioCooperativa):
     if user.get("tipo") != "cooperativa":
         raise HTTPException(status_code=403, detail="Apenas cooperativas podem adicionar feedbacks.")
     if not user.get("id"):
