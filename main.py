@@ -1,18 +1,20 @@
 from fastapi import FastAPI
 import firebase_admin
 from firebase_admin import credentials, firestore
-from models import Usuario
 from services.firestore import db
-from routes import userRoutes
+from routes import rotaRoutes,  usersRoutes
+from services.auth import verify_token
+from models.user import UsuarioCidadao, UsuarioCooperativa, UsuarioCreate
 
 app = FastAPI()
-app.include_router(Usuario.router, prefix="/api")
 
 @app.get("/")
 def read_root():
     return {"message": "API funcionando!"}
 
-app.include_router(userRoutes.router)
+app.include_router(usersRoutes.router)
+app.include_router(rotaRoutes.router)
+
 
 if __name__ == "__main__":
     import uvicorn
