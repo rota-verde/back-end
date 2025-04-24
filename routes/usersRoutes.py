@@ -2,7 +2,7 @@ from typing import Literal, Union
 from fastapi import APIRouter, Body, Depends, HTTPException
 from services.auth import verify_token
 from services.firestore import db
-from models.user import UsuarioCidadao, UsuarioCooperativa,  UsuarioCreateCidadao, UsuarioCreateCooperativa
+from models.user import UsuarioCidadao, UsuarioCooperativa,  UsuarioCreateCidadao, UsuarioCreateCooperativa, UsuarioEntrar
 
 router = APIRouter(
     prefix="/users",
@@ -33,16 +33,26 @@ def register(usuario: Union[UsuarioCreateCidadao, UsuarioCreateCooperativa]):
 
 
 @router.post("/login")
-def login(user: Union[UsuarioCidadao, UsuarioCooperativa]):
-    users_ref = db.collection("usuarios")
-    query = users_ref.where("email", "==", user.email).get()
-    if not query:
-        query = users_ref.where("telefone", "==", user.telefone).get()
-    if not query:
-        raise HTTPException(status_code=400, detail="Email ou senha incorretos.")
+def login(user: UsuarioEntrar):
+    tipos = ["cidadao", "cooperativa"] 
+    user_data = None
+    user_id = None
 
-    user_doc = query[0]
-    return {"mensagem": "Login bem-sucedido", "user_id": user_doc.id}
+    for tipo in tipos:
+        users_ref = db.collection("usuarios").document(tipo).collection("dados")
+        query = users_ref.where("email", "==", user.email).get()
+        if query:
+            user_data = query[0].to_dict()
+            user_id = query[0].id
+            break
+
+    if not user_data:
+        raise HTTPException(status_code=400, detail="Email não encontrado.")
+    
+    if user_data.get("senha") != user.senha:
+        raise HTTPException(status_code=400, detail="Senha incorreta.")
+    
+    return {"mensagem": "Login bem-sucedido", "user_id": user_id}
 
 
 @router.get("/perfil")
