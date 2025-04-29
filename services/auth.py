@@ -1,17 +1,15 @@
-import firebase_admin
-from firebase_admin import credentials, auth
-from fastapi import HTTPException, status, Request, Depends
 
-def verify_token(request: Request):
-    auth_header = request.headers.get("Authorization")
 
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token não fornecido")
+from fastapi import Depends, Header, HTTPException
+from uuid import UUID
+from firebase_admin import auth
 
-    id_token = auth_header.split(" ")[1]
-
+def verificar_token(authorization: str = Header(...)):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token inválido")
+    token = authorization.split(" ")[1]
     try:
-        decoded_token = auth.verify_id_token(id_token)
-        return decoded_token  
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token["uid"]
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")

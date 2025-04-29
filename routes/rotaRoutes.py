@@ -3,7 +3,6 @@ from models import user
 from models.rota import RotaCreate, RotaResponse
 from models.user import UsuarioCooperativa
 from services.firestore import db
-from services.auth import verify_token
 from typing import List
 import uuid
 

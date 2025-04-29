@@ -1,6 +1,7 @@
 from typing import Literal, Optional, Union
+import uuid
 from fastapi import APIRouter, Body, Depends, HTTPException
-from services.auth import verify_token
+from services.auth import verificar_token
 from services.firestore import db
 from models.user import UsuarioCidadao, UsuarioCooperativa,  UsuarioCreateCidadao, UsuarioCreateCooperativa, UsuarioEntrar
 
@@ -9,27 +10,34 @@ router = APIRouter(
     tags=["users"]
 )
 
-
 @router.post("/cadastro")
 def register(usuario: Union[UsuarioCreateCidadao, UsuarioCreateCooperativa]):
-    existing_user = db.collection("usuarios").document(usuario.tipo).collection("dados").where("email", "==", usuario.email).get()
+    existing_user = db.collection("usuarios").document(usuario.tipo).collection("dados")\
+        .where("telefone", "==", usuario.telefone).get()
+    
     if existing_user:
-        raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
+        raise HTTPException(status_code=400, detail="Usuário com esse telefone já cadastrado.")
+    
     tipo = usuario.tipo.lower()
+    user_dict = usuario.model_dump()
+    user_id = str(uuid.uuid4())
+    user_dict["id"] = user_id
+    
 
     if tipo == "cidadao":
-        db.collection("usuarios").document("cidadao").collection("dados").document(usuario.id).set(usuario.dict())
+        db.collection("usuarios").document("cidadao").collection("dados").document(user_id).set(user_dict)
     
     elif tipo == "cooperativa":
-        if not usuario.cnpj or not usuario.nome_cooperativa:
+        if not getattr(usuario, "cnpj", None) or not getattr(usuario, "nome_cooperativa", None):
             raise HTTPException(status_code=400, detail="CNPJ e Nome da Cooperativa são obrigatórios para o tipo 'cooperativa'.")
         
-        db.collection("usuarios").document("cooperativa").collection("dados").document(usuario.id).set(usuario.dict())
+        db.collection("usuarios").document("cooperativa").collection("dados").document(user_id).set(user_dict)
 
     else:
         raise HTTPException(status_code=400, detail="Tipo de usuário inválido")
 
     return {"mensagem": f"Usuário do tipo {tipo} cadastrado com sucesso"}
+
 
 
 @router.post("/login")
@@ -40,14 +48,14 @@ def login(user: UsuarioEntrar):
 
     for tipo in tipos:
         users_ref = db.collection("usuarios").document(tipo).collection("dados")
-        query = users_ref.where("email", "==", user.email).get()
+        query = users_ref.where("telefone", "==", user.telefone).get()
         if query:
             user_data = query[0].to_dict()
             user_id = query[0].id
             break
 
     if not user_data:
-        raise HTTPException(status_code=400, detail="Email não encontrado.")
+        raise HTTPException(status_code=400, detail="Telefone não encontrado.")
     
     if user_data.get("senha") != user.senha:
         raise HTTPException(status_code=400, detail="Senha incorreta.")
@@ -57,32 +65,35 @@ def login(user: UsuarioEntrar):
 
 @router.get("/perfil")
 def perfil_usuario(uid: str):
+    uid = str(uid)
     tipos = ["cidadao", "cooperativa"]
     user_data = None
+
     for tipo in tipos:
         users_ref = db.collection("usuarios").document(tipo).collection("dados")
-        query = users_ref.where("uid", "==", uid).get()
+        query = users_ref.where("id", "==", uid).get()
         if query:
             user_data = query[0].to_dict()
             break
+
     if not user_data:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-    if user_data.get("tipo") == "cidadao":
-        name = user_data.get("nome")
-        email = user_data.get("email")
-    elif user_data.get("tipo") == "cooperativa":
-        name = user_data.get("nome_cooperativa")
-        email = user_data.get("email")
-    else:
-        raise HTTPException(status_code=400, detail="Tipo de usuário inválido")
-    return {
-        "mensagem": f"Olá, {name}!",
+
+    tipo = user_data.get("tipo")
+    resposta = {
+        "mensagem": f"Olá, {user_data.get('username') or user_data.get('nome_cooperativa')}!",
         "uid": uid,
-        "email": email,
-        "tipo": user_data.get("tipo"),
+        "email": user_data.get("email"),
         "telefone": user_data.get("telefone"),
-        "endereco": user_data.get("endereco")
+        "endereco": user_data.get("endereco"),
+        "bairro": user_data.get("bairro"),
+        "tipo": tipo,
+        "cpf": user_data.get("cpf") if tipo == "cidadao" else None,
+        "cnpj": user_data.get("cnpj") if tipo == "cooperativa" else None
     }
+
+    return resposta
+
 
 @router.put("/perfil/atualizar")
 def atualizar_perfil(

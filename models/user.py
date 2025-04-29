@@ -1,9 +1,12 @@
+import uuid
 from pydantic import BaseModel, model_validator
 from typing import Optional
+from pydantic import Field
 
 # Base comum
 class UsuarioBase(BaseModel):
-    id: str
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
     username: str
     email: Optional[str] = None
     telefone: str
