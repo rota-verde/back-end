@@ -141,7 +141,20 @@ def cadastrar_endereco(payload: dict = Body(...)):
     doc_ref.set({"enderecos": enderecos}, merge=True)
     return {"message": "Endereço adicionado com sucesso!"}
 
+#VISUALIZAR ENDERECOS - CIDADÃO
+@router.get("/perfil/enderecos")
+def visualizar_enderecos(id: str):
+    id = str(id)
+    doc_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id)
+    doc = doc_ref.get()
 
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    dados = doc.to_dict()
+    enderecos = dados.get("enderecos", [])
+
+    return {"enderecos": enderecos}
 
 #APAGAR ENDERECOS - CIDADÃO
 @router.delete("/perfil/apagar_endereco")
