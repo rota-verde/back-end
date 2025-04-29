@@ -64,14 +64,14 @@ def login(user: UsuarioEntrar):
 
 
 @router.get("/perfil")
-def perfil_usuario(uid: str):
-    uid = str(uid)
+def perfil_usuario(id: str):
+    id = str(id)
     tipos = ["cidadao", "cooperativa"]
     user_data = None
 
     for tipo in tipos:
         users_ref = db.collection("usuarios").document(tipo).collection("dados")
-        query = users_ref.where("id", "==", uid).get()
+        query = users_ref.where("id", "==", id).get()
         if query:
             user_data = query[0].to_dict()
             break
@@ -82,7 +82,7 @@ def perfil_usuario(uid: str):
     tipo = user_data.get("tipo")
     resposta = {
         "mensagem": f"Olá, {user_data.get('username') or user_data.get('nome_cooperativa')}!",
-        "uid": uid,
+        "id": id,
         "email": user_data.get("email"),
         "telefone": user_data.get("telefone"),
         "endereco": user_data.get("endereco"),
@@ -93,7 +93,6 @@ def perfil_usuario(uid: str):
     }
 
     return resposta
-
 
 @router.put("/perfil/atualizar")
 def atualizar_perfil(
@@ -106,7 +105,7 @@ def atualizar_perfil(
             db.collection("usuarios")
             .document(tipo)
             .collection("dados")
-            .document(user_data["uid"])
+            .document(user_data["id"])
         )
         doc_ref.update(dados_atualizados)
         return {"mensagem": "Perfil atualizado com sucesso!"}
