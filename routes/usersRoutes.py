@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import List, Literal, Optional, Union
 import uuid
 from fastapi import APIRouter, Body, Depends, HTTPException
 from services.auth import verificar_token
@@ -10,6 +10,7 @@ router = APIRouter(
     tags=["users"]
 )
 
+#CADASTRAR USUARIOS
 @router.post("/cadastro")
 def register(usuario: Union[UsuarioCreateCidadao, UsuarioCreateCooperativa]):
     existing_user = db.collection("usuarios").document(usuario.tipo).collection("dados")\
@@ -39,7 +40,7 @@ def register(usuario: Union[UsuarioCreateCidadao, UsuarioCreateCooperativa]):
     return {"mensagem": f"Usuário do tipo {tipo} cadastrado com sucesso"}
 
 
-
+#LOGIN
 @router.post("/login")
 def login(user: UsuarioEntrar):
     tipos = ["cidadao", "cooperativa"] 
@@ -62,7 +63,7 @@ def login(user: UsuarioEntrar):
     
     return {"mensagem": "Login bem-sucedido", "user_id": user_id}
 
-
+# VER PERFIL
 @router.get("/perfil")
 def perfil_usuario(id: str):
     id = str(id)
@@ -93,7 +94,7 @@ def perfil_usuario(id: str):
     }
 
     return resposta
-
+# ATUALIZAR PERFIL
 @router.put("/perfil/atualizar")
 def atualizar_perfil(
     tipo: Literal["cidadao", "cooperativa"],
@@ -117,28 +118,60 @@ def atualizar_perfil(
         return {"mensagem": "Perfil atualizado com sucesso!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar perfil: {str(e)}")
-    
-@router.post("/cadastro/residencia")
-#token: str = Depends(verify_token)
-def cadastrar_residencia(usuario: UsuarioCidadao, endereco: str):
-    existing_residence = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
-    if existing_residence:
-        raise HTTPException(status_code=400, detail="Residência já cadastrada.")
-    
-    db.collection("usuarios").document(usuario.id).collection("residencias").add({"endereco": endereco})
-    return {"message": "Residência cadastrada com sucesso!"}
 
-@router.get("/rotas_publicadas")
-#, token: str = Depends(verify_token)
-def visualizar_rotas_publicadas(usuario: UsuarioCidadao):
-    rotas = db.collection("rotas").where("data", "==", "hoje").where("residencias", "array_contains", usuario.endereco).get()
-    if not rotas:
-        raise HTTPException(status_code=404, detail="Nenhuma rota encontrada para o dia de hoje.")
-    rotas_info = []
-    for rota in rotas:
-        rotas_info.append(rota.to_dict())
+#ADD NOVOS ENDERECOS - CIDADÃO (estabelecimento, outra residencia, etc)
+@router.post("/perfil/adicionar_endereco")
+def cadastrar_endereco(payload: dict = Body(...)):
+    user_id = str(payload["id"])
+    novo_endereco = payload["endereco"]
+
+    doc_ref = db.collection("usuarios").document("cidadao")\
+        .collection("dados").document(user_id)
+
+    doc = doc_ref.get()
+    if doc.exists:
+        dados = doc.to_dict()
+        enderecos = dados.get("enderecos", [])
+        if novo_endereco in enderecos:
+            raise HTTPException(status_code=400, detail="Endereço já cadastrado.")
+        enderecos.append(novo_endereco)
+    else:
+        enderecos = [novo_endereco]
+
+    doc_ref.set({"enderecos": enderecos}, merge=True)
+    return {"message": "Endereço adicionado com sucesso!"}
+
+
+
+#APAGAR ENDERECOS - CIDADÃO
+@router.delete("/perfil/apagar_endereco")
+def apagar_endereco(dados: dict = Body(...)):
+    id = str(dados["id"])
+    endereco = dados["endereco"]
+
+    dados_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id).collection("enderecos")
+    matching = dados_ref.where("endereco", "==", endereco).get()
+
+    if not matching:
+        raise HTTPException(status_code=400, detail="Endereço não encontrado.")
+
+    for doc in matching:
+        dados_ref.document(doc.id).delete()
+
+    return {"message": "Endereço apagado com sucesso!"}
+
+
+# @router.get("/rotas_publicadas")
+# #, token: str = Depends(verify_token)
+# def visualizar_rotas_publicadas(usuario: UsuarioCidadao):
+#     rotas = db.collection("rotas").where("data", "==", "hoje").where("residencias", "array_contains", usuario.endereco).get()
+#     if not rotas:
+#         raise HTTPException(status_code=404, detail="Nenhuma rota encontrada para o dia de hoje.")
+#     rotas_info = []
+#     for rota in rotas:
+#         rotas_info.append(rota.to_dict())
     
-    return {"rotas": rotas_info}
+#     return {"rotas": rotas_info}
 
 # Cidadão: Confirmar se o caminhão passou
 @router.post("/confirmar_coleta")

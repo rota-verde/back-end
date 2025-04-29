@@ -1,6 +1,6 @@
 import uuid
 from pydantic import BaseModel, model_validator
-from typing import Optional
+from typing import List, Optional
 from pydantic import Field
 
 # Base comum
@@ -10,7 +10,7 @@ class UsuarioBase(BaseModel):
     username: str
     email: Optional[str] = None
     telefone: str
-    endereco: str
+    endereco: List[str] = []
     bairro : str
     tipo: str  # "cidadao" ou "cooperativa"
 
