@@ -97,20 +97,26 @@ def perfil_usuario(id: str):
 @router.put("/perfil/atualizar")
 def atualizar_perfil(
     tipo: Literal["cidadao", "cooperativa"],
-    user_data: dict,
+    user_id: str,
     dados_atualizados: dict = Body(...)
 ):
+    if tipo not in ["cidadao", "cooperativa"]:
+        raise HTTPException(status_code=400, detail="Tipo de usuário inválido.")
+    
     try:
         doc_ref = (
             db.collection("usuarios")
             .document(tipo)
             .collection("dados")
-            .document(user_data["id"])
+            .document(user_id)
         )
+        if not doc_ref.get().exists:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        
         doc_ref.update(dados_atualizados)
         return {"mensagem": "Perfil atualizado com sucesso!"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao atualizar: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar perfil: {str(e)}")
     
 @router.post("/cadastro/residencia")
 #token: str = Depends(verify_token)
