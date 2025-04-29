@@ -8,6 +8,7 @@ class UsuarioBase(BaseModel):
     email: Optional[str] = None
     telefone: str
     endereco: str
+    bairro : str
     tipo: str  # "cidadao" ou "cooperativa"
 
 # Cidadão

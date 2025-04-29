@@ -1,4 +1,4 @@
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 from fastapi import APIRouter, Body, Depends, HTTPException
 from services.auth import verify_token
 from services.firestore import db
@@ -56,12 +56,32 @@ def login(user: UsuarioEntrar):
 
 
 @router.get("/perfil")
-#Autenticação off por enquanto = Depends(verify_token)
-def perfil_usuario(usuario: dict):
+def perfil_usuario(uid: str):
+    tipos = ["cidadao", "cooperativa"]
+    user_data = None
+    for tipo in tipos:
+        users_ref = db.collection("usuarios").document(tipo).collection("dados")
+        query = users_ref.where("uid", "==", uid).get()
+        if query:
+            user_data = query[0].to_dict()
+            break
+    if not user_data:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    if user_data.get("tipo") == "cidadao":
+        name = user_data.get("nome")
+        email = user_data.get("email")
+    elif user_data.get("tipo") == "cooperativa":
+        name = user_data.get("nome_cooperativa")
+        email = user_data.get("email")
+    else:
+        raise HTTPException(status_code=400, detail="Tipo de usuário inválido")
     return {
-        "mensagem": f"Olá, {usuario.get('name', 'usuário')}!",
-        "uid": usuario["uid"],
-        "email": usuario.get("email")
+        "mensagem": f"Olá, {name}!",
+        "uid": uid,
+        "email": email,
+        "tipo": user_data.get("tipo"),
+        "telefone": user_data.get("telefone"),
+        "endereco": user_data.get("endereco")
     }
 
 @router.put("/perfil/atualizar")
