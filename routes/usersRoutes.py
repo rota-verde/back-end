@@ -163,7 +163,7 @@ def apagar_endereco(dados: dict = Body(...)):
     endereco = dados["endereco"]
 
     dados_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id).collection("enderecos")
-    matching = dados_ref.where("endereco", "==", endereco).get()
+    matching = dados_ref.where("enderecos", "==", endereco).get()
 
     if not matching:
         raise HTTPException(status_code=400, detail="Endereço não encontrado.")
@@ -173,35 +173,104 @@ def apagar_endereco(dados: dict = Body(...)):
 
     return {"message": "Endereço apagado com sucesso!"}
 
-
-# @router.get("/rotas_publicadas")
-# #, token: str = Depends(verify_token)
-# def visualizar_rotas_publicadas(usuario: UsuarioCidadao):
-#     rotas = db.collection("rotas").where("data", "==", "hoje").where("residencias", "array_contains", usuario.endereco).get()
-#     if not rotas:
-#         raise HTTPException(status_code=404, detail="Nenhuma rota encontrada para o dia de hoje.")
-#     rotas_info = []
-#     for rota in rotas:
-#         rotas_info.append(rota.to_dict())
+#REDEFINIR SENHA - CIDADÃO e COOPERATIVA
+@router.put("/perfil/redefinir_senha")
+def redefinir_senha(
+    id: str,
+    senha : str,
+    nova_senha: str,
+    tipo: Literal["cidadao", "cooperativa"]
+):
+    if tipo not in ["cidadao", "cooperativa"]:
+        raise HTTPException(status_code=400, detail="Tipo de usuário inválido.")
     
-#     return {"rotas": rotas_info}
-
-# Cidadão: Confirmar se o caminhão passou
-@router.post("/confirmar_coleta")
-def confirmar_coleta(usuario: UsuarioCidadao, endereco: str, coleta_confirmada: bool):
-    # Verifica se a residência existe
-    residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
-    if not residencia_ref:
-        raise HTTPException(status_code=400, detail="Residência não encontrada.")
+    # Verifica se a senha está correta
+    if tipo == "cidadao":
+        user_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id)
+        if user_ref.get().exists:
+            user_data = user_ref.get().to_dict()
+            if user_data.get("senha") != senha:
+                raise HTTPException(status_code=400, detail="Senha incorreta.")
+    elif tipo == "cooperativa":
+        user_ref = db.collection("usuarios").document("cooperativa").collection("dados").document(id)
+        if user_ref.get().exists:
+            user_data = user_ref.get().to_dict()
+            if user_data.get("senha") != senha:
+                raise HTTPException(status_code=400, detail="Senha incorreta.")
+    if not nova_senha:
+        raise HTTPException(status_code=400, detail="Nova senha não pode ser vazia.")
+    if senha == nova_senha:
+        raise HTTPException(status_code=400, detail="A nova senha não pode ser igual à senha atual.")
     
-    db.collection("usuarios").document(usuario.id).collection("residencias").document(residencia_ref[0].id).update({"coleta_confirmada": coleta_confirmada})
-    return {"message": "Coleta confirmada com sucesso!"}
-
-@router.post("/adicionar_lixo_reciclavel")
-def adicionar_lixo_reciclavel(usuario: UsuarioCidadao, endereco: str, reciclavel: bool):
-    residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
-    if not residencia_ref:
-        raise HTTPException(status_code=400, detail="Residência não encontrada.")
+    try:
+        doc_ref = (
+            db.collection("usuarios")
+            .document(tipo)
+            .collection("dados")
+            .document(id)
+        )
+        if not doc_ref.get().exists:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        
+        doc_ref.update({"senha": nova_senha})
+        return {"mensagem": "Senha redefinida com sucesso!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao redefinir senha: {str(e)}")
     
-    db.collection("usuarios").document(usuario.id).collection("residencias").document(residencia_ref[0].id).update({"reciclavel": reciclavel})
-    return {"message": "Informação sobre lixo reciclável atualizada com sucesso!"}
+#EXCLUIR USUÁRIO - CIDADÃO e COOPERATIVA
+@router.delete("/perfil/excluir")
+def excluir_usuario(
+    id: str,
+    tipo: Literal["cidadao", "cooperativa"],
+    senha : str 
+):
+    if tipo not in ["cidadao", "cooperativa"]:
+        raise HTTPException(status_code=400, detail="Tipo de usuário inválido.")
+    
+    # Verifica se a senha está correta
+    if tipo == "cidadao":
+        user_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id)
+        if user_ref.get().exists:
+            user_data = user_ref.get().to_dict()
+            if user_data.get("senha") != senha:
+                raise HTTPException(status_code=400, detail="Senha incorreta.")
+    elif tipo == "cooperativa":
+        user_ref = db.collection("usuarios").document("cooperativa").collection("dados").document(id)
+        if user_ref.get().exists:
+            user_data = user_ref.get().to_dict()
+            if user_data.get("senha") != senha:
+                raise HTTPException(status_code=400, detail="Senha incorreta.")
+
+    try:
+        doc_ref = (
+            db.collection("usuarios")
+            .document(tipo)
+            .collection("dados")
+            .document(id)
+        )
+        if not doc_ref.get().exists:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        
+        doc_ref.delete()
+        return {"mensagem": "Usuário excluído com sucesso!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao excluir usuário: {str(e)}")
+
+# @router.post("/confirmar_coleta")
+# def confirmar_coleta(usuario: UsuarioCidadao, endereco: str, coleta_confirmada: bool):
+#     # Verifica se a residência existe
+#     residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
+#     if not residencia_ref:
+#         raise HTTPException(status_code=400, detail="Residência não encontrada.")
+    
+#     db.collection("usuarios").document(usuario.id).collection("residencias").document(residencia_ref[0].id).update({"coleta_confirmada": coleta_confirmada})
+#     return {"message": "Coleta confirmada com sucesso!"}
+
+# @router.post("/adicionar_lixo_reciclavel")
+# def adicionar_lixo_reciclavel(usuario: UsuarioCidadao, endereco: str, reciclavel: bool):
+#     residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
+#     if not residencia_ref:
+#         raise HTTPException(status_code=400, detail="Residência não encontrada.")
+    
+#     db.collection("usuarios").document(usuario.id).collection("residencias").document(residencia_ref[0].id).update({"reciclavel": reciclavel})
+#     return {"message": "Informação sobre lixo reciclável atualizada com sucesso!"}
