@@ -160,18 +160,23 @@ def visualizar_enderecos(id: str):
 @router.delete("/perfil/apagar_endereco")
 def apagar_endereco(dados: dict = Body(...)):
     id = str(dados["id"])
-    endereco = dados["endereco"]
+    endereco_remover = dados["endereco"]
 
-    dados_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id).collection("enderecos")
-    matching = dados_ref.where("enderecos", "==", endereco).get()
+    doc_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
-    if not matching:
+    dados_usuario = doc.to_dict()
+    enderecos = dados_usuario.get("enderecos", [])
+
+    if endereco_remover not in enderecos:
         raise HTTPException(status_code=400, detail="Endereço não encontrado.")
 
-    for doc in matching:
-        dados_ref.document(doc.id).delete()
+    enderecos.remove(endereco_remover)
+    doc_ref.update({"enderecos": enderecos})
 
-    return {"message": "Endereço apagado com sucesso!"}
+    return {"message": "Endereço removido com sucesso!"}
 
 #REDEFINIR SENHA - CIDADÃO e COOPERATIVA
 @router.put("/perfil/redefinir_senha")
