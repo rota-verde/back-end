@@ -1,5 +1,7 @@
 auth_router = APIRouter()
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Literal
+from fastapi import APIRouter, Body, Depends, HTTPException
+from firestore import db
 
 from schemas.user import UserCreate, UserLogin
 
@@ -29,3 +31,114 @@ async def get_terms_of_service(): ...
 
 @auth_router.get("/privacy-policy")
 async def get_privacy_policy(): ...
+
+# VER PERFIL
+
+@auth_router.get("/perfil")
+
+def perfil_usuario(id: str):
+
+    id = str(id)
+
+    tipos = ["cidadao", "cooperativa"]
+
+    user_data = None
+
+
+
+    for tipo in tipos:
+
+        users_ref = db.collection("usuarios").document(tipo).collection("dados")
+
+        query = users_ref.where("id", "==", id).get()
+
+        if query:
+
+            user_data = query[0].to_dict()
+
+            break
+
+
+
+    if not user_data:
+
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+
+
+    tipo = user_data.get("tipo")
+
+    resposta = {
+
+        "mensagem": f"Olá, {user_data.get('username') or user_data.get('nome_cooperativa')}!",
+
+        "id": id,
+
+        "email": user_data.get("email"),
+
+        "telefone": user_data.get("telefone"),
+
+        "endereco": user_data.get("endereco"),
+
+        "bairro": user_data.get("bairro"),
+
+        "tipo": tipo,
+
+        "cpf": user_data.get("cpf") if tipo == "cidadao" else None,
+
+        "cnpj": user_data.get("cnpj") if tipo == "cooperativa" else None
+
+    }
+
+
+
+    return resposta
+
+# ATUALIZAR PERFIL
+
+@auth_router.put("/perfil/atualizar")
+
+def atualizar_perfil(
+
+    tipo: Literal["cidadao", "cooperativa"],
+
+    user_id: str,
+
+    dados_atualizados: dict = Body(...)
+
+):
+
+    if tipo not in ["cidadao", "cooperativa"]:
+
+        raise HTTPException(status_code=400, detail="Tipo de usuário inválido.")
+
+
+
+    try:
+
+        doc_ref = (
+
+            db.collection("usuarios")
+
+            .document(tipo)
+
+            .collection("dados")
+
+            .document(user_id)
+
+        )
+
+        if not doc_ref.get().exists:
+
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+
+
+        doc_ref.update(dados_atualizados)
+
+        return {"mensagem": "Perfil atualizado com sucesso!"}
+
+    except Exception as e:
+
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar perfil: {str(e)}")
+
