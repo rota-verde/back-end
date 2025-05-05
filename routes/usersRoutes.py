@@ -260,22 +260,25 @@ def excluir_usuario(
         return {"mensagem": "Usuário excluído com sucesso!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao excluir usuário: {str(e)}")
-
-# @router.post("/confirmar_coleta")
-# def confirmar_coleta(usuario: UsuarioCidadao, endereco: str, coleta_confirmada: bool):
-#     # Verifica se a residência existe
-#     residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
-#     if not residencia_ref:
-#         raise HTTPException(status_code=400, detail="Residência não encontrada.")
     
-#     db.collection("usuarios").document(usuario.id).collection("residencias").document(residencia_ref[0].id).update({"coleta_confirmada": coleta_confirmada})
-#     return {"message": "Coleta confirmada com sucesso!"}
+#VISUALIZAR ROTAS DO DIA P/ SEU BAIRRO- CIDADÃO
+#CONFIRMAR SE FOI BENEFICIADO PELA ROTA - CIDADÃO
+# INFORMAR SE VAI QUERER SER ATENDIDO NO DIA POR ALGUMA ROTA ATÉ 1 HORA ANTES DO HORÁRIO DA ROTA VIA NOTIFICAÇÃO - CIDADÃO
 
-# @router.post("/adicionar_lixo_reciclavel")
-# def adicionar_lixo_reciclavel(usuario: UsuarioCidadao, endereco: str, reciclavel: bool):
-#     residencia_ref = db.collection("usuarios").document(usuario.id).collection("residencias").where("endereco", "==", endereco).get()
-#     if not residencia_ref:
-#         raise HTTPException(status_code=400, detail="Residência não encontrada.")
+#SESSÃO DE CONCIENTIZAÇÃO - CIDADÃO
+@router.get("/sessao_conscientizacao")
+def sessao_conscientizacao(
+    id: str,
+    tipo: Literal["cidadao", "cooperativa"]
+):
+    if tipo not in ["cidadao", "cooperativa"] or tipo == "cooperativa":
+        raise HTTPException(status_code=400, detail="Tipo de usuário inválido ou sem acesso a sessão.")
     
-#     db.collection("usuarios").document(usuario.id).collection("residencias").document(residencia_ref[0].id).update({"reciclavel": reciclavel})
-#     return {"message": "Informação sobre lixo reciclável atualizada com sucesso!"}
+    user_ref = db.collection("usuarios").document(tipo).collection("dados").document(id)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    
+    # Vai ser colocado um vídeo, uma imagem ou um texto? 
+    return {"mensagem": "Sessão de conscientização disponível."}
+
+#CRIAR ROTA - COOPERATIVA
