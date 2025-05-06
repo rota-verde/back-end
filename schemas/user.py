@@ -7,6 +7,17 @@ class UserBase(BaseModel):
     telefone: str
     role: str  # "cidadao", "cooperativa" ou "motorista"
 
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "nome_usuario": "João Silva",
+                "email": "joao@email.com",
+                "telefone": "+5511999999999",
+                "role": "cidadao"
+            }
+        }
+
 class UserCreate(UserBase):
     senha: str
     cpf: Optional[str] = None
@@ -16,11 +27,43 @@ class UserCreate(UserBase):
     cooperativa_id: Optional[str] = None
     residencias: Optional[List[str]] = None
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "nome_usuario": "João Silva",
+                "email": "joao@email.com",
+                "telefone": "+5511999999999",
+                "role": "cidadao",
+                "senha": "senha_secreta",
+                "cpf": "12345678909",
+                "residencias": ["residencia_1"]
+            }
+        }
+
 class UserLogin(BaseModel):
     email: str
     senha: str
+    class Config:
+        schema_extra = {
+            "example": {
+                "email": "joao@email.com",
+                "senha": "senha_secreta"
+            }
+        }
 
 class UserResponse(UserBase):
     uid: str
     residencias: Optional[List[str]]
     cooperativa_id: Optional[str]
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "uid": "1234567890",
+                "nome_usuario": "João Silva",
+                "email": "joao@email.com",
+                "telefone": "+5511999999999",
+                "role": "cidadao",
+                "residencias": ["residencia_1"],
+            }
+        }

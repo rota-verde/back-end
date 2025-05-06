@@ -1,9 +1,13 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from firebase_config import db, get_current_user_id
-from schemas.cooperativa import MotoristaCreate, MotoristaResponse, RotaCreate, RotaResponse, RotaUpdate
+from firebase_config import db
+from schemas.cooperativa import RotaUpdate
 import uuid
+from schemas.motorista import MotoristaCreate, MotoristaResponse
+from schemas.rota import RouteCreate, RouteResponse
 from datetime import date
+
+from services.auth_service import get_current_user_id
 
 coop_router = APIRouter()
 
@@ -48,8 +52,8 @@ async def listar_motorista(motorista_id: str, current_user_id: str = Depends(get
         raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este motorista.")
     return MotoristaResponse(**motorista_data)
 
-@coop_router.post("/rotas", response_model=RotaResponse, status_code=201)
-async def cadastrar_rotas(rota: RotaCreate, current_user_id: str = Depends(get_current_user_id)):
+@coop_router.post("/rotas", response_model=RouteResponse, status_code=201)
+async def cadastrar_rotas(rota: RouteCreate, current_user_id: str = Depends(get_current_user_id)):
     """Cadastrar rotas para a cooperativa."""
     rota_id = str(uuid.uuid4())
     rota_data = rota.model_dump()
@@ -58,18 +62,18 @@ async def cadastrar_rotas(rota: RotaCreate, current_user_id: str = Depends(get_c
     rota_data["feedbacks"] = 0  # Inicializa o contador de feedbacks
 
     await db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
-    return RotaResponse(**rota_data)
+    return RouteResponse(**rota_data)
 
-@coop_router.get("/rotas", response_model=List[RotaResponse])
+@coop_router.get("/rotas", response_model=List[RouteResponse])
 async def listar_rotas(current_user_id: str = Depends(get_current_user_id)):
     """Listar rotas da cooperativa."""
     rotas = []
     query = db.collection(ROTAS_COLLECTION).where("cooperativa_id", "==", current_user_id)
     async for doc in query.stream():
-        rotas.append(RotaResponse(**doc.to_dict()))
+        rotas.append(RouteResponse(**doc.to_dict()))
     return rotas
 
-@coop_router.get("/rotas/{rota_id}", response_model=RotaResponse)
+@coop_router.get("/rotas/{rota_id}", response_model=RouteResponse)
 async def listar_rota(rota_id: str, current_user_id: str = Depends(get_current_user_id)):
     """Listar rota específica da cooperativa."""
     rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
@@ -79,9 +83,9 @@ async def listar_rota(rota_id: str, current_user_id: str = Depends(get_current_u
     rota_data = doc.to_dict()
     if rota_data.get("cooperativa_id") != current_user_id:
         raise HTTPException(status_code=403, detail="Você não tem permissão para acessar esta rota.")
-    return RotaResponse(**rota_data)
+    return RouteResponse(**rota_data)
 
-@coop_router.patch("/rotas/{rota_id}", response_model=RotaResponse)
+@coop_router.patch("/rotas/{rota_id}", response_model=RouteResponse)
 async def editar_rotas(rota_id: str, rota: RotaUpdate, current_user_id: str = Depends(get_current_user_id)):
     """Editar rota específica da cooperativa."""
     rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
@@ -95,7 +99,7 @@ async def editar_rotas(rota_id: str, rota: RotaUpdate, current_user_id: str = De
     rota_update_data = rota.model_dump(exclude_unset=True)
     await rota_ref.update(rota_update_data)
     updated_doc = await rota_ref.get()
-    return RotaResponse(**updated_doc.to_dict())
+    return RouteResponse(**updated_doc.to_dict())
 
 @coop_router.delete("/rotas/{rota_id}", status_code=204)
 async def deletar_rotas(rota_id: str, current_user_id: str = Depends(get_current_user_id)):
@@ -111,12 +115,12 @@ async def deletar_rotas(rota_id: str, current_user_id: str = Depends(get_current
     await rota_ref.delete()
     return {"message": f"Rota {rota_id} deletada com sucesso!"}
 
-@coop_router.get("/rotas/hoje", response_model=List[RotaResponse])
+@coop_router.get("/rotas/hoje", response_model=List[RouteResponse])
 async def listar_rotas_hoje(current_user_id: str = Depends(get_current_user_id)):
     """Listar rotas do dia da cooperativa."""
     hoje = date.today()
     rotas_hoje = []
     query = db.collection(ROTAS_COLLECTION).where("cooperativa_id", "==", current_user_id).where("data", "==", hoje)
     async for doc in query.stream():
-        rotas_hoje.append(RotaResponse(**doc.to_dict()))
+        rotas_hoje.append(RouteResponse(**doc.to_dict()))
     return rotas_hoje
