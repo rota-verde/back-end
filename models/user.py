@@ -1,16 +1,13 @@
 from typing import List, Optional
 from pydantic import BaseModel
+from schemas.user import UserBase
 
-class UserModel(BaseModel):
-    uid: str  
-    role: str  # "cidadao", "cooperativa" ou "motorista"
-    nome_usuario: str
-    nome_cooperativa: Optional[str] = None  # apenas para cooperativa
+class UserModel(UserBase):
+    uid: str
     cpf: Optional[str] = None
-    cnh: Optional[str] = None
     cnpj: Optional[str] = None
-    email: Optional[str] = None
-    telefone: str
-    residencias: Optional[List[str]] = []  # apenas para cidadão
-    cooperativa_id: Optional[str] = None  # se for motorista
+    cnh: Optional[str] = None
+    nome_cooperativa: Optional[str] = None
+    residencias: Optional[List[str]] = []
+    cooperativa_id: Optional[str] = None
     auth_2fa_enabled: Optional[bool] = False

@@ -1,80 +1,74 @@
-from typing import List, Literal, Optional, Union
-import uuid
+from typing import List, Dict
 from fastapi import APIRouter, Body, Depends, HTTPException
-from firestore import db
-from schemas.residencia import ResidenceCreate
-
-
+from firestore import db, get_current_user_id
+from schemas.cidadao import FeedbackColeta, Tutorial
+from schemas.residencia import ResidenceCreate, ResidenceResponse, EnderecoSchema
+from models.residencia import ResidenceModel
+import uuid
 
 cidadao_router = APIRouter()
 
-@cidadao_router.post("/cadastrar_residencias")
-async def cadastrar_residencias(residencia: ResidenceCreate):
-    user_id = str(payload["id"])
-    novo_endereco = payload["endereco"]
+USUARIOS_COLLECTION = "usuarios"
+RESIDENCIAS_COLLECTION = "residencias"
 
-    doc_ref = db.collection("usuarios").document("cidadao")\
-        .collection("dados").document(user_id)
+@cidadao_router.post("/residencias", response_model=ResidenceResponse, status_code=201)
+async def cadastrar_residencia(residencia: ResidenceCreate, current_user_id: str = Depends(get_current_user_id)):
+    residencia_id = str(uuid.uuid4())
+    residencia_model = ResidenceModel(
+        id=residencia_id,
+        user_id=current_user_id,
+        endereco=residencia.endereco,
+        location=residencia.location,
+        coletavel=False 
+    )
+    await db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+        .collection(RESIDENCIAS_COLLECTION).document(residencia_id).set(residencia_model.model_dump())
+    return ResidenceResponse(id=residencia_id, endereco=residencia.endereco, location=residencia.location, coletavel=False)
 
-    doc = doc_ref.get()
-    if doc.exists:
-        dados = doc.to_dict()
-        enderecos = dados.get("enderecos", [])
-        if novo_endereco in enderecos:
-            raise HTTPException(status_code=400, detail="Endereço já cadastrado.")
-        enderecos.append(novo_endereco)
-    else:
-        enderecos = [novo_endereco]
+@cidadao_router.get("/residencias", response_model=List[ResidenceResponse])
+async def listar_residencias(current_user_id: str = Depends(get_current_user_id)):
+    residencias_ref = db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+        .collection(RESIDENCIAS_COLLECTION)
+    residencias = []
+    async for doc in residencias_ref.stream():
+        residencia_data = doc.to_dict()
+        residencias.append(ResidenceResponse(**residencia_data))
+    return residencias
 
-    doc_ref.set({"enderecos": enderecos}, merge=True)
-    return {"message": "Endereço adicionado com sucesso!"}
-
-@cidadao_router.get("/residencias")
-async def listar_residencias():
-    id = str(id)
-    doc_ref = db.collection("usuarios").document("cidadao").collection("dados").document(id)
-    doc = doc_ref.get()
-
+@cidadao_router.delete("/residencias/{residencia_id}", status_code=204)
+async def deletar_residencia(residencia_id: str, current_user_id: str = Depends(get_current_user_id)):
+    residencia_ref = db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+        .collection(RESIDENCIAS_COLLECTION).document(residencia_id)
+    doc = await residencia_ref.get()
     if not doc.exists:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        raise HTTPException(status_code=404, detail="Residência não encontrada.")
+    await residencia_ref.delete()
+    return {"message": "Residência removida com sucesso!"}
 
-    dados = doc.to_dict()
-    enderecos = dados.get("enderecos", [])
+@cidadao_router.patch("/residencias/{residencia_id}/coletar", response_model=ResidenceResponse)
+async def coletar_residencia(residencia_id: str, current_user_id: str = Depends(get_current_user_id)):
+    residencia_ref = db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+        .collection(RESIDENCIAS_COLLECTION).document(residencia_id)
+    doc = await residencia_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Residência não encontrada.")
 
-    return {"enderecos": enderecos}
+    await residencia_ref.update({"coletavel": True})
+    updated_doc = await residencia_ref.get()
+    return ResidenceResponse(**updated_doc.to_dict())
 
-@cidadao_router.patch("/residencias/{residencia_id}/coletar")
-async def coletar_residencias(residencia_id: str):
-    """
-    Atualizar status de coleta de uma residência.
-    """
-    pass
+@cidadao_router.post("/feedback", status_code=201)
+async def enviar_feedback(feedback: FeedbackColeta, current_user_id: str = Depends(get_current_user_id)):
+    # Lógica para salvar o feedback do cidadão
+    feedback_data = feedback.model_dump()
+    feedback_data["user_id"] = current_user_id
+    await db.collection("feedback_coletas").add(feedback_data)
+    return {"message": "Feedback enviado com sucesso!"}
 
-@cidadao_router.get("/rotas/hoje/feedback")
-async def listar_feedback():
-    """
-    Listar feedbacks do dia.
-    """
-    pass
-
-@cidadao_router.get("/rotas/hoje")
-async def listar_rotas_hoje():
-    """
-    Listar rotas do dia.
-    """
-    pass
-
-@cidadao_router.get("/rotas/hoje/{rota_id}")
-async def listar_rota(rota_id: str):
-    """
-    Listar rota específica do dia.
-    """
-    pass
-
-@cidadao_router.get("/tutoriais")
-async def listar_tutoriais():
-    """
-    Listar tutoriais.
-    """
-    pass
+@cidadao_router.get("/tutoriais", response_model=List[Tutorial])
+async def listar_tutoriais(current_user_id: str = Depends(get_current_user_id)):
+    tutoriais = []
+    async for doc in db.collection("tutoriais").stream():
+        tutoriais.append(Tutorial(**doc.to_dict()))
+    return tutoriais
 

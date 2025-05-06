@@ -1,57 +1,148 @@
-from typing import Literal
-from fastapi import APIRouter, Body, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from firestore import db, firebase
 from firebase_admin import auth
-from schemas.user import UserCreate, UserLogin
+from firebase_admin.exceptions import FirebaseError
+from google.cloud.firestore_v1.base import FieldPath
+
+from firestore import db, get_current_user
+from schemas.user import UserCreate, UserLogin, UserResponse, UserModel
 
 auth_router = APIRouter()
 
-@auth_router.post("/register")
+@auth_router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(user: UserCreate):
-        name = user.nome_usuario
-        email = user.email
-        phone = user.telefone
-        password = user.senha
-        role = user.role #criar os usuarios baseados no tipo
+    try:
+        firebase_user = auth.create_user(
+            display_name=user.nome_usuario,
+            email=user.email,
+            phone_number=user.telefone,
+            password=user.senha
+        )
+        uid = firebase_user.uid
 
-        try:
-            user = auth.create_user(
-                display_name=name,
-                email=email,
-                phone_number=phone,
-                password=password
-            )
+        # Definir custom claim para o role
+        auth.set_custom_user_claims(uid, {"role": user.role})
 
-            return JSONResponse(content={"message": f"Conta criada com sucesso para o usuario: {user.uid}"}, status_code=201)
-        except auth.EmailAlreadyExistsError:
-            raise HTTPException(status_code=400, detail= f"Conta com o email: {email} ja existe.")
+        user_data = user.model_dump(exclude={"senha"})
+        user_data["uid"] = uid
+
+        db.collection("usuarios").document(uid).set(user_data)
+
+        return UserResponse(**user_data)
+    except auth.EmailAlreadyExistsError:
+        raise HTTPException(status_code=400, detail=f"Conta com o email: {user.email} já existe.")
+    except FirebaseError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao criar conta: {str(e)}")
 
 @auth_router.post("/login")
 async def login_user(credentials: UserLogin):
-        email = credentials.email
-        password = credentials.senha
+    try:
+        user = auth.sign_in_with_email_and_password(
+            email=credentials.email,
+            password=credentials.senha
+        )
+        token = user['idToken']
+        return JSONResponse(content={"token": token}, status_code=200)
+    except FirebaseError:
+        raise HTTPException(status_code=400, detail="Email ou senha inválidos.")
 
-        try:
-            user = firebase.auth().sign_in_with_email_and_password(
-                email = email,
-                password = password
-            )
+@auth_router.get("/user/{user_id}", response_model=UserModel)
+async def get_user(user_id: str, current_user_id: str = Depends(get_current_user)):
+    if current_user_id != user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este usuário.")
 
-            token = user['idToken']
-            
-            return JSONResponse(content={"token": token}, status_code=200)
-        except:
-             raise HTTPException(status_code=400, detail="Email ou senha invalidos.")
+    try:
+        firebase_user = auth.get_user(user_id)
+        firestore_user = db.collection("usuarios").document(user_id).get()
+
+        if not firestore_user.exists:
+            raise HTTPException(status_code=404, detail="Dados do usuário não encontrados.")
+
+        user_data = firestore_user.to_dict()
+        return UserModel(uid=firebase_user.uid, **user_data, role=firebase_user.custom_claims.get("role"))
+    except auth.UserNotFoundError:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    except FirebaseError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar usuário: {str(e)}")
+
+@auth_router.put("/user/update/{user_id}", response_model=UserResponse)
+async def update_user(user_id: str, user: UserCreate, current_user_id: str = Depends(get_current_user)):
+    if current_user_id != user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para atualizar este usuário.")
+
+    try:
+        user_updates_auth = {
+            "display_name": user.nome_usuario,
+            "email": user.email,
+            "phone_number": user.telefone,
+            "password": user.senha  # Considere se a senha deve ser atualizada aqui
+        }
+        auth.update_user(user_id, **user_updates_auth)
+
+        user_updates_firestore = user.model_dump(exclude={"senha"})
+        db.collection("usuarios").document(user_id).update(user_updates_firestore)
+
+        # Obter os dados atualizados do Firestore para a resposta
+        updated_user_data = db.collection("usuarios").document(user_id).get().to_dict()
+        return UserResponse(uid=user_id, **updated_user_data, role=user.role)
+
+    except auth.UserNotFoundError:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    except FirebaseError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar usuário: {str(e)}")
 
 @auth_router.post("/forgot-password")
-async def forgot_password(telefone: str): ...
+async def forgot_password(credentials: UserLogin):
+    try:
+        reset_link = auth.generate_password_reset_link(credentials.email)
+        return JSONResponse(content={"message": "Link de redefinição de senha gerado com sucesso.", "reset_link": reset_link}, status_code=200)
+    except auth.UserNotFoundError:
+        raise HTTPException(status_code=404, detail="Usuário com este email não encontrado.")
+    except FirebaseError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar email de redefinição: {str(e)}")
 
 @auth_router.post("/reset-password")
-async def reset_password(token: str, new_password: str): ...
+async def reset_password(oobCode: str, new_password: str):
+    try:
+        auth.confirm_password_reset(oobCode, new_password)
+        return JSONResponse(content={"message": "Senha redefinida com sucesso!"}, status_code=200)
+    except auth.InvalidOobCodeError:
+        raise HTTPException(status_code=400, detail="Código de redefinição de senha inválido ou expirado.")
+    except FirebaseError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao redefinir senha: {str(e)}")
 
 @auth_router.delete("/delete-account/{user_id}")
-async def delete_account(user_id: str): ...
+async def delete_account(user_id: str, current_user_id: str = Depends(get_current_user)):
+    if current_user_id != user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para deletar esta conta.")
+
+    try:
+        auth.delete_user(user_id)
+        db.collection("usuarios").document(user_id).delete()
+        return JSONResponse(content={"message": f"Usuário {user_id} deletado com sucesso."}, status_code=200)
+    except auth.UserNotFoundError:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    except FirebaseError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar usuário: {str(e)}")
+
+# Placeholder para as rotas restantes
+@auth_router.post("/2fa/enable/{user_id}")
+async def enable_2fa(user_id: str):
+    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+
+@auth_router.post("/2fa/verify")
+async def verify_2fa():
+    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+
+@auth_router.get("/terms-of-service")
+async def get_terms_of_service():
+    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+
+@auth_router.get("/privacy-policy")
+async def get_privacy_policy():
+    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+
 
 @auth_router.post("/2fa/enable/{user_id}")
 async def enable_2fa(user_id: str): ...
@@ -65,113 +156,7 @@ async def get_terms_of_service(): ...
 @auth_router.get("/privacy-policy")
 async def get_privacy_policy(): ...
 
-# VER PERFIL
-
-@auth_router.get("/perfil")
-
-def perfil_usuario(id: str):
-
-    id = str(id)
-
-    tipos = ["cidadao", "cooperativa"]
-
-    user_data = None
 
 
 
-    for tipo in tipos:
-
-        users_ref = db.collection("usuarios").document(tipo).collection("dados")
-
-        query = users_ref.where("id", "==", id).get()
-
-        if query:
-
-            user_data = query[0].to_dict()
-
-            break
-
-
-
-    if not user_data:
-
-        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-
-
-
-    tipo = user_data.get("tipo")
-
-    resposta = {
-
-        "mensagem": f"Olá, {user_data.get('username') or user_data.get('nome_cooperativa')}!",
-
-        "id": id,
-
-        "email": user_data.get("email"),
-
-        "telefone": user_data.get("telefone"),
-
-        "endereco": user_data.get("endereco"),
-
-        "bairro": user_data.get("bairro"),
-
-        "tipo": tipo,
-
-        "cpf": user_data.get("cpf") if tipo == "cidadao" else None,
-
-        "cnpj": user_data.get("cnpj") if tipo == "cooperativa" else None
-
-    }
-
-
-
-    return resposta
-
-# ATUALIZAR PERFIL
-
-@auth_router.put("/perfil/atualizar")
-
-def atualizar_perfil(
-
-    tipo: Literal["cidadao", "cooperativa"],
-
-    user_id: str,
-
-    dados_atualizados: dict = Body(...)
-
-):
-
-    if tipo not in ["cidadao", "cooperativa"]:
-
-        raise HTTPException(status_code=400, detail="Tipo de usuário inválido.")
-
-
-
-    try:
-
-        doc_ref = (
-
-            db.collection("usuarios")
-
-            .document(tipo)
-
-            .collection("dados")
-
-            .document(user_id)
-
-        )
-
-        if not doc_ref.get().exists:
-
-            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-
-
-
-        doc_ref.update(dados_atualizados)
-
-        return {"mensagem": "Perfil atualizado com sucesso!"}
-
-    except Exception as e:
-
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar perfil: {str(e)}")
 
