@@ -8,8 +8,8 @@ class UserBase(BaseModel):
     role: str  # "cidadao", "cooperativa" ou "motorista"
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "nome_usuario": "João Silva",
                 "email": "joao@email.com",
@@ -28,7 +28,7 @@ class UserCreate(UserBase):
     residencias: Optional[List[str]] = None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "nome_usuario": "João Silva",
                 "email": "joao@email.com",
@@ -44,7 +44,7 @@ class UserLogin(BaseModel):
     email: str
     senha: str
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "email": "joao@email.com",
                 "senha": "senha_secreta"
@@ -56,8 +56,8 @@ class UserResponse(UserBase):
     residencias: Optional[List[str]]
     cooperativa_id: Optional[str]
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "uid": "1234567890",
                 "nome_usuario": "João Silva",

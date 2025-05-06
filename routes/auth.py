@@ -8,25 +8,28 @@ from firebase_config import firebase_instance, db
 from schemas.user import UserCreate, UserLogin, UserResponse, UserBase
 
 auth_router = APIRouter()
-
+firebase_auth = firebase_instance.auth()
 @auth_router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(user: UserCreate):
     try:
-        firebase_user = firebase_instance.auth().create_user(
-            display_name=user.nome_usuario,
+        firebase_user = firebase_auth.create_user_with_email_and_password(
             email=user.email,
-            phone_number=user.telefone,
             password=user.senha
         )
-        uid = firebase_user.uid
-
-        # Definir custom claim para o role
-        firebase_instance.auth().set_custom_user_claims(uid, {"role": user.role})
-
+        uid = firebase_user['localId']
         user_data = user.model_dump(exclude={"senha"})
         user_data["uid"] = uid
+        user_data["nome_usuario"] = user.nome_usuario  
+        user_data["telefone"] = user.telefone      
+        user_data["role"] = user.role                
 
-        db.collection("usuarios").document(uid).set(user_data)
+        # # Definir custom claim para o role
+        # firebase_instance.auth().set_custom_user_claims(uid, {"role": user.role})
+
+        try:
+            db.collection("usuarios").document(uid).set(user_data)
+        except FirebaseError as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao salvar usuário no Firestore: {str(e)}")
 
         return UserResponse(**user_data)
     except auth.EmailAlreadyExistsError:

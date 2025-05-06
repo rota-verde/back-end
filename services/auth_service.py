@@ -4,9 +4,10 @@ from jwt import InvalidTokenError
 from routes import auth
 from firebase_admin import auth
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
+    print(f"Token recebido: {token}") 
     try:
         decoded_token = auth.verify_id_token(token)
         return decoded_token

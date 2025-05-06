@@ -7,7 +7,7 @@ class ResidenciaCreate(BaseModel):
     bairro: str
     cidade: str
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "endereco": "Rua Exemplo",
                 "numero": "123",
@@ -20,8 +20,8 @@ class ResidenciaResponse(ResidenciaCreate):
     id: str
     coletavel: bool = False
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "id": "1",
                 "endereco": "Rua Exemplo",
@@ -37,7 +37,7 @@ class FeedbackColeta(BaseModel):
     rota_id: str
     coleta_confirmada: bool
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "residencia_id": "1",
                 "rota_id": "1",

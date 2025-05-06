@@ -7,7 +7,7 @@ class MotoristaBase(BaseModel):
     telefone: str
     bairo : str
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "nome": "Motorista Exemplo",
                 "telefone": "+5511999999999",
@@ -21,7 +21,7 @@ class RotaBase(BaseModel):
     motoristas: List[str]
     pontos: Dict[str, float]  # lat/long 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "nome": "Rota Exemplo",
                 "data": "2023-10-01T08:00:00",
@@ -39,7 +39,7 @@ class RotaUpdate(BaseModel):
     motoristas: Optional[List[str]]
     pontos: Optional[Dict[str, float]]
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "nome": "Rota Atualizada",
                 "data": "2023-10-01T08:00:00",

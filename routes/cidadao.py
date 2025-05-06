@@ -6,32 +6,35 @@ from schemas.cidadao import FeedbackColeta
 from schemas.residencia import ResidenceCreate, ResidenceResponse, EnderecoSchema
 from models.residencia import ResidenceModel
 import uuid
-
+from models.residencia import EnderecoModel
+from models.residencia import ResidenceModel
 cidadao_router = APIRouter()
 
 USUARIOS_COLLECTION = "usuarios"
 RESIDENCIAS_COLLECTION = "residencias"
 
-@cidadao_router.post("/residencias", response_model=ResidenceResponse, status_code=201)
-async def cadastrar_residencia(residencia: ResidenceCreate, current_user_id: str = Depends(get_current_user_id)):
+@cidadao_router.post("/cadastrar_residencias/{user_id}", response_model=ResidenceResponse, status_code=201)
+async def cadastrar_residencia(user_id: str, residencia: ResidenceCreate):
     residencia_id = str(uuid.uuid4())
+    endereco_model = EnderecoModel(**residencia.endereco.model_dump())  
     residencia_model = ResidenceModel(
         id=residencia_id,
-        user_id=current_user_id,
-        endereco=residencia.endereco,
+        user_id=user_id,
+        endereco=endereco_model,  
         location=residencia.location,
-        coletavel=False 
+        coletavel=False
     )
-    await db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+    db.collection(USUARIOS_COLLECTION).document(user_id)\
         .collection(RESIDENCIAS_COLLECTION).document(residencia_id).set(residencia_model.model_dump())
     return ResidenceResponse(id=residencia_id, endereco=residencia.endereco, location=residencia.location, coletavel=False)
 
-@cidadao_router.get("/residencias", response_model=List[ResidenceResponse])
-async def listar_residencias(current_user_id: str = Depends(get_current_user_id)):
-    residencias_ref = db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+
+@cidadao_router.get("/residencias/{user_id}", response_model=List[ResidenceResponse])
+async def listar_residencias(user_id: str ):
+    residencias_ref = db.collection(USUARIOS_COLLECTION).document(user_id)\
         .collection(RESIDENCIAS_COLLECTION)
     residencias = []
-    async for doc in residencias_ref.stream():
+    for doc in residencias_ref.stream():
         residencia_data = doc.to_dict()
         residencias.append(ResidenceResponse(**residencia_data))
     return residencias

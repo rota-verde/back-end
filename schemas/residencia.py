@@ -7,7 +7,7 @@ class EnderecoSchema(BaseModel):
     bairro: str
     cidade: str
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "logradouro": "Rua Exemplo",
                 "numero": "123",
@@ -20,7 +20,7 @@ class ResidenceCreate(BaseModel):
     endereco: EnderecoSchema
     location: Dict[str, float]  
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "endereco": {
                     "logradouro": "Rua Exemplo",
@@ -41,8 +41,8 @@ class ResidenceResponse(BaseModel):
     location: Dict[str, float]
     coletavel: bool
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "id": "1",
                 "endereco": {

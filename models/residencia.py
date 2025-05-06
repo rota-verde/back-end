@@ -11,6 +11,6 @@ class ResidenceModel(BaseModel):
     id: Optional[str] = None
     user_id: str  
     endereco: EnderecoModel
-    location: Dict[str, float]  # {"lat": ..., "lng": ...}
+    location: Dict[str, float]  # {"lat": ..., "lng": ...} -> botao do maps acessar sua loc
     coletavel: bool = False
     

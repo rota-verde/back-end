@@ -6,7 +6,7 @@ class FeedbackSchema(BaseModel):
     residencia_id: str
     coletado: bool
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "residencia_id": "residencia1",
                 "coletado": True
@@ -20,7 +20,7 @@ class RouteCreate(BaseModel):
     data: date
     hora_inicio: time
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "motorista_id": "1",
                 "residencias_incluidas": ["residencia1", "residencia2"],
@@ -40,8 +40,8 @@ class RouteResponse(BaseModel):
     status: bool
     feedbacks: List[FeedbackSchema]
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "id": "1",
                 "cooperativa_id": "1",
