@@ -5,14 +5,7 @@ from datetime import datetime
 class MotoristaBase(BaseModel):
     nome: str
     telefone: str
-    area_abertura: str
-
-class MotoristaCreate(MotoristaBase):
-    senha: str
-
-class MotoristaResponse(MotoristaBase):
-    id: str
-    rotas: Optional[List[str]] = []
+    bairo : str
 
 class RotaBase(BaseModel):
     nome: str
@@ -20,15 +13,13 @@ class RotaBase(BaseModel):
     motoristas: List[str]
     pontos: List[str]  # ids das residências
 
-class RotaCreate(RotaBase):
-    pass
-
 class RotaUpdate(BaseModel):
     nome: Optional[str]
     data: Optional[datetime]
     motoristas: Optional[List[str]]
     pontos: Optional[List[str]]
 
-class RotaResponse(RotaBase):
+class Tutorial(BaseModel):
     id: str
-    feedbacks: Optional[int] = 0
+    titulo: str
+    conteudo: str

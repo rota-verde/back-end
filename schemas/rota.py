@@ -9,6 +9,7 @@ class FeedbackSchema(BaseModel):
 class RouteCreate(BaseModel):
     motorista_id: str
     residencias_incluidas: List[str]
+    bairro: str
     data: date
     hora_inicio: time
 

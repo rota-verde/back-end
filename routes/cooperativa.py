@@ -1,69 +1,122 @@
-from fastapi import APIRouter
-
-from schemas.cooperativa import MotoristaCreate, RotaCreate, RotaUpdate
-
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException
+from firestore import db, get_current_user_id
+from schemas.cooperativa import MotoristaCreate, MotoristaResponse, RotaCreate, RotaResponse, RotaUpdate
+import uuid
+from datetime import date
 
 coop_router = APIRouter()
 
-@coop_router.post("/cadastrar_motoristas")
-async def cadastrar_motoristas(motorista: MotoristaCreate):
-    """
-    Cadastrar motoristas.
-    """
-    pass
+COOPERATIVAS_COLLECTION = "cooperativas"
+MOTORISTAS_COLLECTION = "motoristas"
+ROTAS_COLLECTION = "rotas"
 
-@coop_router.get("/motoristas")
-async def listar_motoristas():
-    """
-    Listar motoristas.
-    """
-    pass
+# Helper para obter a referência da cooperativa
+async def get_cooperativa_ref(current_user_id: str = Depends(get_current_user_id)):
+    return db.collection(COOPERATIVAS_COLLECTION).document(current_user_id)
 
-@coop_router.get("/motoristas/{motorista_id}")
-async def listar_motorista(motorista_id: str):
-    """
-    Listar motorista específico.
-    """
-    pass
+@coop_router.post("/motoristas", response_model=MotoristaResponse, status_code=201)
+async def cadastrar_motoristas(motorista: MotoristaCreate, current_user_id: str = Depends(get_current_user_id)):
+    """Cadastrar motoristas para a cooperativa."""
+    motorista_id = str(uuid.uuid4())
+    motorista_data = motorista.model_dump()
+    motorista_data["cooperativa_id"] = current_user_id
+    motorista_data["id"] = motorista_id
+    motorista_data["rotas"] = []  # Inicializa a lista de rotas do motorista
 
-@coop_router.get("/rotas")
-async def listar_rotas():
-    """
-    Listar rotas.
-    """
-    pass
+    await db.collection(MOTORISTAS_COLLECTION).document(motorista_id).set(motorista_data)
+    return MotoristaResponse(**motorista_data)
 
-@coop_router.get("/rotas/{rota_id}")
-async def listar_rota(rota_id: str):
-    """
-    Listar rota específica.
-    """
-    pass
+@coop_router.get("/motoristas", response_model=List[MotoristaResponse])
+async def listar_motoristas(current_user_id: str = Depends(get_current_user_id)):
+    """Listar motoristas da cooperativa."""
+    motoristas = []
+    query = db.collection(MOTORISTAS_COLLECTION).where("cooperativa_id", "==", current_user_id)
+    async for doc in query.stream():
+        motoristas.append(MotoristaResponse(**doc.to_dict()))
+    return motoristas
 
-@coop_router.post("/rotas")
-async def cadastrar_rotas(rota: RotaCreate):
-    """
-    Cadastrar rotas.
-    """
-    pass
+@coop_router.get("/motoristas/{motorista_id}", response_model=MotoristaResponse)
+async def listar_motorista(motorista_id: str, current_user_id: str = Depends(get_current_user_id)):
+    """Listar motorista específico da cooperativa."""
+    motorista_ref = db.collection(MOTORISTAS_COLLECTION).document(motorista_id)
+    doc = await motorista_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Motorista não encontrado.")
+    motorista_data = doc.to_dict()
+    if motorista_data.get("cooperativa_id") != current_user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este motorista.")
+    return MotoristaResponse(**motorista_data)
 
-@coop_router.patch("/rotas/{rota_id}")
-async def editar_rotas(rota_id: str, rota: RotaUpdate):
-    """
-    Editar rotas.
-    """
-    pass
+@coop_router.post("/rotas", response_model=RotaResponse, status_code=201)
+async def cadastrar_rotas(rota: RotaCreate, current_user_id: str = Depends(get_current_user_id)):
+    """Cadastrar rotas para a cooperativa."""
+    rota_id = str(uuid.uuid4())
+    rota_data = rota.model_dump()
+    rota_data["cooperativa_id"] = current_user_id
+    rota_data["id"] = rota_id
+    rota_data["feedbacks"] = 0  # Inicializa o contador de feedbacks
 
-@coop_router.delete("/rotas/{rota_id}")
-async def deletar_rotas(rota_id: str):
-    """
-    Deletar rotas.
-    """
-    pass
+    await db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
+    return RotaResponse(**rota_data)
 
-@coop_router.get("/rotas/hoje")
-async def listar_rotas_hoje():
-    """
-    Listar rotas do dia.
-    """
-    pass
+@coop_router.get("/rotas", response_model=List[RotaResponse])
+async def listar_rotas(current_user_id: str = Depends(get_current_user_id)):
+    """Listar rotas da cooperativa."""
+    rotas = []
+    query = db.collection(ROTAS_COLLECTION).where("cooperativa_id", "==", current_user_id)
+    async for doc in query.stream():
+        rotas.append(RotaResponse(**doc.to_dict()))
+    return rotas
+
+@coop_router.get("/rotas/{rota_id}", response_model=RotaResponse)
+async def listar_rota(rota_id: str, current_user_id: str = Depends(get_current_user_id)):
+    """Listar rota específica da cooperativa."""
+    rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
+    doc = await rota_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Rota não encontrada.")
+    rota_data = doc.to_dict()
+    if rota_data.get("cooperativa_id") != current_user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para acessar esta rota.")
+    return RotaResponse(**rota_data)
+
+@coop_router.patch("/rotas/{rota_id}", response_model=RotaResponse)
+async def editar_rotas(rota_id: str, rota: RotaUpdate, current_user_id: str = Depends(get_current_user_id)):
+    """Editar rota específica da cooperativa."""
+    rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
+    doc = await rota_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Rota não encontrada.")
+    rota_data = doc.to_dict()
+    if rota_data.get("cooperativa_id") != current_user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para editar esta rota.")
+
+    rota_update_data = rota.model_dump(exclude_unset=True)
+    await rota_ref.update(rota_update_data)
+    updated_doc = await rota_ref.get()
+    return RotaResponse(**updated_doc.to_dict())
+
+@coop_router.delete("/rotas/{rota_id}", status_code=204)
+async def deletar_rotas(rota_id: str, current_user_id: str = Depends(get_current_user_id)):
+    """Deletar rota específica da cooperativa."""
+    rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
+    doc = await rota_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Rota não encontrada.")
+    rota_data = doc.to_dict()
+    if rota_data.get("cooperativa_id") != current_user_id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para deletar esta rota.")
+
+    await rota_ref.delete()
+    return {"message": f"Rota {rota_id} deletada com sucesso!"}
+
+@coop_router.get("/rotas/hoje", response_model=List[RotaResponse])
+async def listar_rotas_hoje(current_user_id: str = Depends(get_current_user_id)):
+    """Listar rotas do dia da cooperativa."""
+    hoje = date.today()
+    rotas_hoje = []
+    query = db.collection(ROTAS_COLLECTION).where("cooperativa_id", "==", current_user_id).where("data", "==", hoje)
+    async for doc in query.stream():
+        rotas_hoje.append(RotaResponse(**doc.to_dict()))
+    return rotas_hoje

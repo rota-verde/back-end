@@ -15,8 +15,3 @@ class FeedbackColeta(BaseModel):
     residencia_id: str
     rota_id: str
     coleta_confirmada: bool
-
-class Tutorial(BaseModel):
-    id: str
-    titulo: str
-    conteudo: str

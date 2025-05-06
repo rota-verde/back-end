@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from firebase_admin import auth
 from firebase_admin.exceptions import FirebaseError
-from google.cloud.firestore_v1.base import FieldPath 
 
 from firestore import db, get_current_user
 from schemas.user import UserCreate, UserLogin, UserResponse, UserModel
