@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Dict, List, Optional
 from datetime import datetime
 
 class MotoristaBase(BaseModel):
@@ -11,13 +11,13 @@ class RotaBase(BaseModel):
     nome: str
     data: datetime
     motoristas: List[str]
-    pontos: List[str]  # ids das residências
+    pontos: Dict[str, float]  # lat/long 
 
 class RotaUpdate(BaseModel):
     nome: Optional[str]
     data: Optional[datetime]
     motoristas: Optional[List[str]]
-    pontos: Optional[List[str]]
+    pontos: Optional[Dict[str, float]]
 
 class Tutorial(BaseModel):
     id: str
