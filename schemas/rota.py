@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import Dict, List
 from datetime import date, time
 
 class FeedbackSchema(BaseModel):
@@ -19,6 +19,7 @@ class RouteCreate(BaseModel):
     bairro: str
     data: date
     hora_inicio: time
+    pontos : Dict[str, float]  # lat/long
     class Config:
         json_schema_extra = {
             "example": {
@@ -26,7 +27,11 @@ class RouteCreate(BaseModel):
                 "residencias_incluidas": ["residencia1", "residencia2"],
                 "bairro": "Centro",
                 "data": "2023-10-01",
-                "hora_inicio": "08:00:00"
+                "hora_inicio": "08:00:00",
+                "pontos": {
+                    "ponto1": [40.7128, -74.0060],
+                    "ponto2": [34.0522, -118.2437]
+                }
             }
         }
 

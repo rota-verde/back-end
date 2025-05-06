@@ -15,11 +15,10 @@ COOPERATIVAS_COLLECTION = "cooperativas"
 MOTORISTAS_COLLECTION = "motoristas"
 ROTAS_COLLECTION = "rotas"
 
-# Helper para obter a referência da cooperativa
 async def get_cooperativa_ref(current_user_id: str = Depends(get_current_user_id)):
     return db.collection(COOPERATIVAS_COLLECTION).document(current_user_id)
 
-@coop_router.post("/motoristas", response_model=MotoristaResponse, status_code=201)
+@coop_router.post("/cadastrar_motoristas", response_model=MotoristaResponse, status_code=201)
 async def cadastrar_motoristas(motorista: MotoristaCreate, current_user_id: str = Depends(get_current_user_id)):
     """Cadastrar motoristas para a cooperativa."""
     motorista_id = str(uuid.uuid4())
@@ -52,15 +51,17 @@ async def listar_motorista(motorista_id: str, current_user_id: str = Depends(get
         raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este motorista.")
     return MotoristaResponse(**motorista_data)
 
-@coop_router.post("/rotas", response_model=RouteResponse, status_code=201)
+@coop_router.post("/criar_rotas", response_model=RouteResponse, status_code=201)
 async def cadastrar_rotas(rota: RouteCreate, current_user_id: str = Depends(get_current_user_id)):
     """Cadastrar rotas para a cooperativa."""
     rota_id = str(uuid.uuid4())
     rota_data = rota.model_dump()
     rota_data["cooperativa_id"] = current_user_id
     rota_data["id"] = rota_id
-    rota_data["feedbacks"] = 0  # Inicializa o contador de feedbacks
-
+    rota_data["feedbacks"] = 0  
+    rota_data["data"] = date.today()
+    rota_data["motoristas"] = []
+    rota_data["residencias"] = get_pontos_rota()
     await db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
     return RouteResponse(**rota_data)
 

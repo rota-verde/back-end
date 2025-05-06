@@ -39,26 +39,27 @@ async def listar_residencias(user_id: str ):
         residencias.append(ResidenceResponse(**residencia_data))
     return residencias
 
-@cidadao_router.delete("/residencias/{residencia_id}", status_code=204)
-async def deletar_residencia(residencia_id: str, current_user_id: str = Depends(get_current_user_id)):
-    residencia_ref = db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+@cidadao_router.delete("/deletar_residencias/{residencia_id}/{user_id}", status_code=204)
+async def deletar_residencia(residencia_id: str, user_id: str ):
+    residencia_ref = db.collection(USUARIOS_COLLECTION).document(user_id)\
         .collection(RESIDENCIAS_COLLECTION).document(residencia_id)
-    doc = await residencia_ref.get()
+    doc = residencia_ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Residência não encontrada.")
-    await residencia_ref.delete()
+    else:
+        residencia_ref.delete()
     return {"message": "Residência removida com sucesso!"}
 
 @cidadao_router.patch("/residencias/{residencia_id}/coletar", response_model=ResidenceResponse)
-async def coletar_residencia(residencia_id: str, current_user_id: str = Depends(get_current_user_id)):
-    residencia_ref = db.collection(USUARIOS_COLLECTION).document(current_user_id)\
+async def coletar_residencia(residencia_id: str, user_id: str ):
+    residencia_ref = db.collection(USUARIOS_COLLECTION).document(user_id)\
         .collection(RESIDENCIAS_COLLECTION).document(residencia_id)
-    doc = await residencia_ref.get()
+    doc = residencia_ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Residência não encontrada.")
 
-    await residencia_ref.update({"coletavel": True})
-    updated_doc = await residencia_ref.get()
+    residencia_ref.update({"coletavel": True})
+    updated_doc = residencia_ref.get()
     return ResidenceResponse(**updated_doc.to_dict())
 
 # @cidadao_router.post("/feedback", status_code=201)
