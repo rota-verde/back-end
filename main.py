@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter
 import firebase_admin
 from firebase_admin import credentials, firestore
-from firestore import db
+from firebase_config import db
 from routes.auth import auth_router
 from routes.cidadao import cidadao_router
 

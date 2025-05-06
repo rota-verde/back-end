@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from firestore import db, get_current_user_id
+from firebase_config import db, get_current_user_id
 from schemas.cooperativa import MotoristaCreate, MotoristaResponse, RotaCreate, RotaResponse, RotaUpdate
 import uuid
 from datetime import date

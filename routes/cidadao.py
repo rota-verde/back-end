@@ -1,6 +1,7 @@
 from typing import List, Dict
 from fastapi import APIRouter, Body, Depends, HTTPException
-from firestore import db, get_current_user_id
+from services.auth_service import get_current_user_id
+from firebase_config import db
 from schemas.cidadao import FeedbackColeta, Tutorial
 from schemas.residencia import ResidenceCreate, ResidenceResponse, EnderecoSchema
 from models.residencia import ResidenceModel

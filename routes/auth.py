@@ -3,16 +3,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from firebase_admin import auth
 from firebase_admin.exceptions import FirebaseError
-
-from firestore import db, get_current_user
-from schemas.user import UserCreate, UserLogin, UserResponse, UserModel
+from services.auth_service import get_current_user
+from firebase_config import firebase_instance, db
+from schemas.user import UserCreate, UserLogin, UserResponse, UserBase
 
 auth_router = APIRouter()
 
 @auth_router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(user: UserCreate):
     try:
-        firebase_user = auth.create_user(
+        firebase_user = firebase_instance.auth().create_user(
             display_name=user.nome_usuario,
             email=user.email,
             phone_number=user.telefone,
@@ -21,7 +21,7 @@ async def register_user(user: UserCreate):
         uid = firebase_user.uid
 
         # Definir custom claim para o role
-        auth.set_custom_user_claims(uid, {"role": user.role})
+        firebase_instance.auth().set_custom_user_claims(uid, {"role": user.role})
 
         user_data = user.model_dump(exclude={"senha"})
         user_data["uid"] = uid
@@ -37,7 +37,7 @@ async def register_user(user: UserCreate):
 @auth_router.post("/login")
 async def login_user(credentials: UserLogin):
     try:
-        user = auth.sign_in_with_email_and_password(
+        user = firebase_instance.auth().sign_in_with_email_and_password(
             email=credentials.email,
             password=credentials.senha
         )
@@ -46,20 +46,20 @@ async def login_user(credentials: UserLogin):
     except FirebaseError:
         raise HTTPException(status_code=400, detail="Email ou senha inválidos.")
 
-@auth_router.get("/user/{user_id}", response_model=UserModel)
+@auth_router.get("/user/{user_id}", response_model=UserBase)
 async def get_user(user_id: str, current_user_id: str = Depends(get_current_user)):
     if current_user_id != user_id:
         raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este usuário.")
 
     try:
-        firebase_user = auth.get_user(user_id)
+        firebase_user = firebase_instance.auth().get_user(user_id)
         firestore_user = db.collection("usuarios").document(user_id).get()
 
         if not firestore_user.exists:
             raise HTTPException(status_code=404, detail="Dados do usuário não encontrados.")
 
         user_data = firestore_user.to_dict()
-        return UserModel(uid=firebase_user.uid, **user_data, role=firebase_user.custom_claims.get("role"))
+        return UserBase(uid=firebase_user.uid, **user_data, role=firebase_user.custom_claims.get("role"))
     except auth.UserNotFoundError:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     except FirebaseError as e:
