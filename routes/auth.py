@@ -13,15 +13,14 @@ async def register_user(user: UserCreate):
         email = user.email
         phone = user.telefone
         password = user.senha
-        role = user.role 
+        role = user.role #criar os usuarios baseados no tipo
 
         try:
             user = auth.create_user(
-                name = name,
-                email = email,
-                phone = phone,
-                password = password,
-                role = role
+                display_name=name,
+                email=email,
+                phone_number=phone,
+                password=password
             )
 
             return JSONResponse(content={"message": f"Conta criada com sucesso para o usuario: {user.uid}"}, status_code=201)
@@ -58,7 +57,7 @@ async def delete_account(user_id: str): ...
 async def enable_2fa(user_id: str): ...
 
 @auth_router.post("/2fa/verify")
-async def verify_2fa(data: TwoFAVerification): ... # type: ignore
+#async def verify_2fa(data: TwoFAVerification): ... # type: ignore
 
 @auth_router.get("/terms-of-service")
 async def get_terms_of_service(): ...
