@@ -1,15 +1,49 @@
-auth_router = APIRouter()
 from typing import Literal
 from fastapi import APIRouter, Body, Depends, HTTPException
-from firestore import db
-
+from fastapi.responses import JSONResponse
+from firestore import db, firebase
+from firebase_admin import auth
 from schemas.user import UserCreate, UserLogin
 
+auth_router = APIRouter()
+
 @auth_router.post("/register")
-async def register_user(user: UserCreate): ...
+async def register_user(user: UserCreate):
+        name = user.nome_usuario
+        email = user.email
+        phone = user.telefone
+        password = user.senha
+        role = user.role 
+
+        try:
+            user = auth.create_user(
+                name = name,
+                email = email,
+                phone = phone,
+                password = password,
+                role = role
+            )
+
+            return JSONResponse(content={"message": f"Conta criada com sucesso para o usuario: {user.uid}"}, status_code=201)
+        except auth.EmailAlreadyExistsError:
+            raise HTTPException(status_code=400, detail= f"Conta com o email: {email} ja existe.")
 
 @auth_router.post("/login")
-async def login_user(credentials: UserLogin): ...
+async def login_user(credentials: UserLogin):
+        email = credentials.email
+        password = credentials.senha
+
+        try:
+            user = firebase.auth().sign_in_with_email_and_password(
+                email = email,
+                password = password
+            )
+
+            token = user['idToken']
+            
+            return JSONResponse(content={"token": token}, status_code=200)
+        except:
+             raise HTTPException(status_code=400, detail="Email ou senha invalidos.")
 
 @auth_router.post("/forgot-password")
 async def forgot_password(telefone: str): ...

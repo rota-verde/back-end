@@ -3,6 +3,7 @@ from typing import List, Optional
 
 class UserCreate(BaseModel):
     nome_usuario: str
+    email: str
     telefone: str
     senha: str
     role: str  # cidadao | cooperativa | motorista
