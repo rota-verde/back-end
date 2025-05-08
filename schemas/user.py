@@ -53,6 +53,14 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     uid: str
+    nome_usuario: str
+    email: EmailStr
+    telefone: str
+    role: str
+    cpf: Optional[str]
+    cnpj: Optional[str]
+    cnh: Optional[str]
+    nome_cooperativa: Optional[str]
     residencias: Optional[List[str]]
     cooperativa_id: Optional[str]
     class Config:

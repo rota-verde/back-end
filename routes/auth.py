@@ -8,11 +8,11 @@ from firebase_config import firebase_instance, db
 from schemas.user import UserCreate, UserLogin, UserResponse, UserBase
 
 auth_router = APIRouter()
-firebase_auth = firebase_instance.auth()
+
 @auth_router.post("/register", response_model=UserResponse, status_code=201)
 async def register_user(user: UserCreate):
     try:
-        firebase_user = firebase_auth.create_user_with_email_and_password(
+        firebase_user = firebase_instance.auth().create_user_with_email_and_password(
             email=user.email,
             password=user.senha
         )
@@ -21,10 +21,13 @@ async def register_user(user: UserCreate):
         user_data["uid"] = uid
         user_data["nome_usuario"] = user.nome_usuario  
         user_data["telefone"] = user.telefone      
-        user_data["role"] = user.role                
+        user_data["role"] = user.role    
+        user_data["cpf"] = user.cpf if user.role == "cidadao" else None
+        user_data["cnpj"] = user.cnpj if user.role == "cooperativa" else None
+        user_data["cnh"] = user.cnh if user.role == "motorista" else None
+        user_data["nome_cooperativa"] = user.nome_cooperativa if user.role == "cooperativa" else None
+        user_data["cooperativa_id"] = user.cooperativa_id if user.role == "motorista" else None            
 
-        # # Definir custom claim para o role
-        # firebase_instance.auth().set_custom_user_claims(uid, {"role": user.role})
 
         try:
             db.collection("usuarios").document(uid).set(user_data)
@@ -49,13 +52,13 @@ async def login_user(credentials: UserLogin):
     except FirebaseError:
         raise HTTPException(status_code=400, detail="Email ou senha inválidos.")
 
+#corrigir - retirar depends e retornar o user_data
 @auth_router.get("/user/{user_id}", response_model=UserBase)
 async def get_user(user_id: str, current_user_id: str = Depends(get_current_user)):
     if current_user_id != user_id:
         raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este usuário.")
-
     try:
-        firebase_user = firebase_instance.auth().get_user(user_id)
+        firebase_user = firebase_instance.auth.get_account_info(user_id)
         firestore_user = db.collection("usuarios").document(user_id).get()
 
         if not firestore_user.exists:
@@ -68,6 +71,7 @@ async def get_user(user_id: str, current_user_id: str = Depends(get_current_user
     except FirebaseError as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar usuário: {str(e)}")
 
+#corrigir - retirar depends , verificar se o user_id é o mesmo do current_user_id e se atualiza o Firestore e retorna correto 
 @auth_router.put("/user/update/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user: UserCreate, current_user_id: str = Depends(get_current_user)):
     if current_user_id != user_id:
@@ -78,7 +82,7 @@ async def update_user(user_id: str, user: UserCreate, current_user_id: str = Dep
             "display_name": user.nome_usuario,
             "email": user.email,
             "phone_number": user.telefone,
-            "password": user.senha  # Considere se a senha deve ser atualizada aqui
+            "password": user.senha  
         }
         auth.update_user(user_id, **user_updates_auth)
 
@@ -97,7 +101,7 @@ async def update_user(user_id: str, user: UserCreate, current_user_id: str = Dep
 @auth_router.post("/forgot-password")
 async def forgot_password(credentials: UserLogin):
     try:
-        reset_link = auth.generate_password_reset_link(credentials.email)
+        reset_link = firebase_instance.auth.send_password_reset_email(credentials.email)
         return JSONResponse(content={"message": "Link de redefinição de senha gerado com sucesso.", "reset_link": reset_link}, status_code=200)
     except auth.UserNotFoundError:
         raise HTTPException(status_code=404, detail="Usuário com este email não encontrado.")
@@ -148,9 +152,6 @@ async def get_privacy_policy():
 
 @auth_router.post("/2fa/enable/{user_id}")
 async def enable_2fa(user_id: str): ...
-
-@auth_router.post("/2fa/verify")
-#async def verify_2fa(data: TwoFAVerification): ... # type: ignore
 
 @auth_router.get("/terms-of-service")
 async def get_terms_of_service(): ...
