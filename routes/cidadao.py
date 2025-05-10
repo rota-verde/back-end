@@ -1,5 +1,6 @@
 from typing import List, Dict
 from fastapi import APIRouter, Body, Depends, HTTPException
+from schemas.cooperativa import Tutorial
 from services.auth_service import get_current_user_id
 from firebase_config import db
 from schemas.cidadao import FeedbackColeta
@@ -58,22 +59,28 @@ async def coletar_residencia(residencia_id: str, user_id: str ):
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Residência não encontrada.")
 
-    residencia_ref.update({"coletavel": True})
+    residencia_data = doc.to_dict()
+    if residencia_data.get("coletavel") == True:
+        residencia_ref.update({"coletavel": False})
+    else:
+        residencia_ref.update({"coletavel": True})
+
     updated_doc = residencia_ref.get()
     return ResidenceResponse(**updated_doc.to_dict())
 
-# @cidadao_router.post("/feedback", status_code=201)
-# async def enviar_feedback(feedback: FeedbackColeta, current_user_id: str = Depends(get_current_user_id)):
-#     # Lógica para salvar o feedback do cidadão
-#     feedback_data = feedback.model_dump()
-#     feedback_data["user_id"] = current_user_id
-#     await db.collection("feedback_coletas").add(feedback_data)
-#     return {"message": "Feedback enviado com sucesso!"}
+@cidadao_router.post("/feedback", status_code=201)
+async def enviar_feedback(feedback: FeedbackColeta, user_id: str):
+    feedback_data = feedback.model_dump()
+    feedback_data["user_id"] = user_id
 
-# @cidadao_router.get("/tutoriais", response_model=List[Tutorial])
-# async def listar_tutoriais(current_user_id: str = Depends(get_current_user_id)):
-#     tutoriais = []
-#     async for doc in db.collection("tutoriais").stream():
-#         tutoriais.append(Tutorial(**doc.to_dict()))
-#     return tutoriais
+    db.collection("feedback_coletas").add(feedback_data)
+    return {"message": "Feedback enviado com sucesso!"}
+
+@cidadao_router.get("/tutoriais", response_model=List[Tutorial])
+async def listar_tutoriais():
+    tutoriais = []
+    for doc in db.collection("tutoriais").stream():
+        tutoriais.append(Tutorial(**doc.to_dict()))
+    
+    return tutoriais
 

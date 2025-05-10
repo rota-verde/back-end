@@ -1,5 +1,7 @@
 from fastapi import HTTPException
-from routes.cooperativa import ROTAS_COLLECTION
+from firebase_config import db
+
+ROTAS_COLLECTION = "rotas"
 
 
 def get_pontos_rota(rota_id: str, current_user_id: str):

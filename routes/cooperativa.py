@@ -1,12 +1,14 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from firebase_config import db
+from models.rota import RotaModel
 from schemas.cooperativa import RotaUpdate
 import uuid
 from schemas.motorista import MotoristaCreate, MotoristaResponse
 from schemas.rota import RouteCreate, RouteResponse
 from datetime import date
 
+from services import get_pontos_rota
 from services.auth_service import get_current_user_id
 
 coop_router = APIRouter()
@@ -125,3 +127,9 @@ async def listar_rotas_hoje(current_user_id: str = Depends(get_current_user_id))
     async for doc in query.stream():
         rotas_hoje.append(RouteResponse(**doc.to_dict()))
     return rotas_hoje
+
+@coop_router.get("/feedbacks/{rota_id}", response_model= RouteResponse)
+async def coletar_feedbacks_diario(user_id: str, rota : RotaModel):
+    #Coletar todos os feedbacks do dia que estao na coleção feedbacks_coleta com o id da rota e dentro tds os feedbacks de tds as residencias
+    
+    pass
