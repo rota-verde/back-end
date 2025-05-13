@@ -23,9 +23,9 @@ async def cadastrar_motoristas(motorista: MotoristaCreate, coop_id : str):
     """Cadastrar motoristas para a cooperativa."""
     motorista_id = str(uuid.uuid4())
     motorista_data = motorista.model_dump()
-    motorista_data["cooperativa_id"] = coop_id
     motorista_data["id"] = motorista_id
     motorista_data["rotas"] = []  
+    motorista_data["coop_id"] = coop_id
 
     db.collection(MOTORISTAS_COLLECTION).document(motorista_id).set(motorista_data)
     return MotoristaResponse(**motorista_data)
@@ -34,20 +34,23 @@ async def cadastrar_motoristas(motorista: MotoristaCreate, coop_id : str):
 async def listar_motoristas(coop_id: str ):
     """Listar motoristas da cooperativa."""
     motoristas = []
-    query = db.collection(MOTORISTAS_COLLECTION).where("cooperativa_id", "==", coop_id)
+    query = db.collection(MOTORISTAS_COLLECTION).where("coop_id", "==", coop_id)
     for doc in query.stream():
         motoristas.append(MotoristaResponse(**doc.to_dict()))
     return motoristas
 
-@coop_router.get("/motoristas/{motorista_id}", response_model=MotoristaResponse)
-async def listar_motorista(motorista_id: str, current_user_id: str = Depends(get_current_user_id)):
+@coop_router.get("/motoristas/{coop_id}/{motorista_id}", response_model=MotoristaResponse)
+async def listar_motorista(motorista_id: str, coop_id: str):
     """Listar motorista específico da cooperativa."""
     motorista_ref = db.collection(MOTORISTAS_COLLECTION).document(motorista_id)
-    doc = await motorista_ref.get()
+    doc = motorista_ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Motorista não encontrado.")
     motorista_data = doc.to_dict()
-    if motorista_data.get("cooperativa_id") != current_user_id:
+    if motorista_data.get("coop_id") != coop_id:
+        print (motorista_data.get("coop_id"))
+        print (coop_id)
+        
         raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este motorista.")
     return MotoristaResponse(**motorista_data)
 
