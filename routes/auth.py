@@ -1,4 +1,5 @@
 from typing import Optional
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from firebase_admin import auth
@@ -26,7 +27,6 @@ async def register_user(user: UserCreate):
         user_data["cnpj"] = user.cnpj if user.role == "cooperativa" else None
         user_data["cnh"] = user.cnh if user.role == "motorista" else None
         user_data["nome_cooperativa"] = user.nome_cooperativa if user.role == "cooperativa" else None
-        user_data["cooperativa_id"] = user.cooperativa_id if user.role == "motorista" else None            
 
 
         try:

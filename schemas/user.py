@@ -24,7 +24,6 @@ class UserCreate(UserBase):
     cnpj: Optional[str] = None
     cnh: Optional[str] = None
     nome_cooperativa: Optional[str] = None
-    cooperativa_id: Optional[str] = None
     residencias: Optional[List[str]] = None
 
     class Config:
@@ -36,6 +35,9 @@ class UserCreate(UserBase):
                 "role": "cidadao",
                 "senha": "senha_secreta",
                 "cpf": "12345678909",
+                "cnpj" :"12345678",
+                "cnh": "12355",
+                "nome_cooperativa": "coop",
                 "residencias": ["residencia_1"]
             }
         }
@@ -62,7 +64,6 @@ class UserResponse(UserBase):
     cnh: Optional[str]
     nome_cooperativa: Optional[str]
     residencias: Optional[List[str]]
-    cooperativa_id: Optional[str]
     class Config:
         from_attributes = True
         json_schema_extra = {
