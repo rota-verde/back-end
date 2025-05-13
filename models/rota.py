@@ -11,4 +11,4 @@ class RotaModel(BaseModel):
     residencias_ids: List[str]  # lista de ids das residências
     coleta_iniciada_em: Optional[datetime] = None
     coleta_finalizada_em: Optional[datetime] = None
-    status: Optional[str] = "pendente"  # ou: "em_andamento", "finalizada"
+    ativa: bool = False

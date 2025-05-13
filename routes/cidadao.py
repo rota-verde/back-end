@@ -110,11 +110,14 @@ async def coletar_residencia(user_id: str, residencia_id: str):
 
 @cidadao_router.get("/ver_mapa")
 async def ver_mapa():
-    return {"message": "Aqui está o mapa com as residências coletáveis."}
+    return {"message": "Aqui está o mapa com as coop."}
+
+@cidadao_router.get("/ver_rota/{user_id}")
 
 @cidadao_router.post("/feedback/{user_id}", status_code=201)
 async def enviar_feedback(user_id: str, feedback: FeedbackColeta):
     verificar_usuario(user_id)
+    #Tem que verificar se alguma residencia dele ta em rota ativa
     feedback_data = feedback.model_dump()
     feedback_data["user_id"] = user_id
     db.collection("feedback_coletas").add(feedback_data)

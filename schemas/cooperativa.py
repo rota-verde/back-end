@@ -5,7 +5,7 @@ from datetime import datetime
 class MotoristaBase(BaseModel):
     nome: str
     telefone: str
-    bairro : str
+    bairro : List[str]
     class Config:
         json_schema_extra = {
             "example": {

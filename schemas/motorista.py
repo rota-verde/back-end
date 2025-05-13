@@ -10,7 +10,8 @@ class MotoristaCreate(BaseModel):
     email: str
     senha: str
     coop_id : str
-    bairro: str
+    bairro: List[str]
+    em_rota : bool = False
     class Config:
         json_schema_extra = {
             "example": {
