@@ -5,8 +5,6 @@ from firebase_admin import credentials
 from firebase_admin import db
 import pyrebase
 
-cred = credentials.Certificate("./rota-verde-ea753-firebase-adminsdk-fbsvc-bf3cc22a45.json")
-firebase_admin.initialize_app(cred)
 
 firebaseConfig = {
   "apiKey": "AIzaSyBiAxQppDfYxUpWytRjfb_Mo_6fkNKvtb4",
@@ -20,4 +18,6 @@ firebaseConfig = {
 }
 
 firebase_instance = pyrebase.initialize_app(firebaseConfig)
+cred = credentials.Certificate("./rota-verde-ea753-firebase-adminsdk-fbsvc-bf3cc22a45.json")
+firebase_admin.initialize_app(cred)
 db = firestore.client()

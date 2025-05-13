@@ -55,7 +55,7 @@ async def listar_motorista(motorista_id: str, coop_id: str):
     return MotoristaResponse(**motorista_data)
 
 @coop_router.post("/criar_rotas", response_model=RouteResponse, status_code=201)
-async def cadastrar_rotas(rota: RouteCreate, current_user_id: str = Depends(get_current_user_id)):
+async def cadastrar_rotas(rota: RouteCreate, current_user_id: str):
     """Cadastrar rotas para a cooperativa."""
     rota_id = str(uuid.uuid4())
     rota_data = rota.model_dump()
