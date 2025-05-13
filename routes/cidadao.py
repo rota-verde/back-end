@@ -1,6 +1,7 @@
 from typing import List, Dict
 from fastapi import APIRouter, Body, Depends, HTTPException
 from schemas.cooperativa import Tutorial
+from schemas.cooperativa import Tutorial
 from services.auth_service import get_current_user_id
 from firebase_config import db
 from schemas.cidadao import FeedbackColeta
@@ -59,7 +60,12 @@ async def coletar_residencia(residencia_id: str, user_id: str ):
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Residência não encontrada.")
 
-    residencia_ref.update({"coletavel": True})
+    residencia_data = doc.to_dict()
+    if residencia_data.get("coletavel") == True:
+        residencia_ref.update({"coletavel": False})
+    else:
+        residencia_ref.update({"coletavel": True})
+
     updated_doc = residencia_ref.get()
     return ResidenceResponse(**updated_doc.to_dict())
 

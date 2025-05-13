@@ -9,13 +9,15 @@ class MotoristaCreate(BaseModel):
     telefone: str
     email: str
     senha: str
+    coop_id : str
     class Config:
         json_schema_extra = {
             "example": {
                 "nome": "Motorista Exemplo",
                 "telefone": "+5511999999999",
                 "email": "exemplo@email.com",
-                "senha": "senhaSegura123"
+                "senha": "senhaSegura123",
+                "coop_id" : "1"
             }
         }
 

@@ -1,12 +1,14 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from firebase_config import db
+from models.rota import RotaModel
 from schemas.cooperativa import RotaUpdate
 import uuid
 from schemas.motorista import MotoristaCreate, MotoristaResponse
 from schemas.rota import RouteCreate, RouteResponse
 from datetime import date
 
+from services import get_pontos_rota
 from services.auth_service import get_current_user_id
 
 coop_router = APIRouter()
@@ -15,27 +17,25 @@ COOPERATIVAS_COLLECTION = "cooperativas"
 MOTORISTAS_COLLECTION = "motoristas"
 ROTAS_COLLECTION = "rotas"
 
-async def get_cooperativa_ref(current_user_id: str = Depends(get_current_user_id)):
-    return db.collection(COOPERATIVAS_COLLECTION).document(current_user_id)
 
 @coop_router.post("/cadastrar_motoristas", response_model=MotoristaResponse, status_code=201)
-async def cadastrar_motoristas(motorista: MotoristaCreate, current_user_id: str = Depends(get_current_user_id)):
+async def cadastrar_motoristas(motorista: MotoristaCreate, coop_id : str):
     """Cadastrar motoristas para a cooperativa."""
     motorista_id = str(uuid.uuid4())
     motorista_data = motorista.model_dump()
-    motorista_data["cooperativa_id"] = current_user_id
+    motorista_data["cooperativa_id"] = coop_id
     motorista_data["id"] = motorista_id
-    motorista_data["rotas"] = []  # Inicializa a lista de rotas do motorista
+    motorista_data["rotas"] = []  
 
-    await db.collection(MOTORISTAS_COLLECTION).document(motorista_id).set(motorista_data)
+    db.collection(MOTORISTAS_COLLECTION).document(motorista_id).set(motorista_data)
     return MotoristaResponse(**motorista_data)
 
 @coop_router.get("/motoristas", response_model=List[MotoristaResponse])
-async def listar_motoristas(current_user_id: str = Depends(get_current_user_id)):
+async def listar_motoristas(coop_id: str ):
     """Listar motoristas da cooperativa."""
     motoristas = []
-    query = db.collection(MOTORISTAS_COLLECTION).where("cooperativa_id", "==", current_user_id)
-    async for doc in query.stream():
+    query = db.collection(MOTORISTAS_COLLECTION).where("cooperativa_id", "==", coop_id)
+    for doc in query.stream():
         motoristas.append(MotoristaResponse(**doc.to_dict()))
     return motoristas
 
@@ -125,3 +125,9 @@ async def listar_rotas_hoje(current_user_id: str = Depends(get_current_user_id))
     async for doc in query.stream():
         rotas_hoje.append(RouteResponse(**doc.to_dict()))
     return rotas_hoje
+
+@coop_router.get("/feedbacks/{rota_id}", response_model= RouteResponse)
+async def coletar_feedbacks_diario(user_id: str, rota : RotaModel):
+    #Coletar todos os feedbacks do dia que estao na coleção feedbacks_coleta com o id da rota e dentro tds os feedbacks de tds as residencias
+
+    pass
