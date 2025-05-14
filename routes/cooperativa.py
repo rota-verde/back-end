@@ -7,8 +7,6 @@ import uuid
 from schemas.motorista import MotoristaCreate, MotoristaResponse
 from schemas.rota import RouteCreate, RouteResponse
 from datetime import date
-
-from services import get_pontos_rota
 from services.auth_service import get_current_user_id
 
 coop_router = APIRouter()
@@ -64,7 +62,7 @@ async def cadastrar_rotas(rota: RouteCreate, current_user_id: str):
     rota_data["feedbacks"] = 0  
     rota_data["data"] = date.today()
     rota_data["motoristas"] = []
-    rota_data["residencias"] = get_pontos_rota()
+    rota_data["residencias"] = []
     await db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
     return RouteResponse(**rota_data)
 

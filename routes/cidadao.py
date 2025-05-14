@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from typing import List
 from fastapi import APIRouter, Body, HTTPException
 from schemas.cooperativa import Tutorial
@@ -7,12 +8,15 @@ from models.residencia import ResidenceModel, EnderecoModel
 from firebase_config import db
 import uuid
 
+from services import gerar_mapa_com_coops, gerar_rota_no_mapa
 from services.verificar_user import verificar_usuario
 
 cidadao_router = APIRouter()
 
 USUARIOS_COLLECTION = "usuarios"
 RESIDENCIAS_COLLECTION = "residencias"
+ROTAS_COLLECTION = "rotas"
+
 
 
 @cidadao_router.post("/cadastrar_residencias/{user_id}", response_model=ResidenceResponse, status_code=201)
@@ -108,20 +112,106 @@ async def coletar_residencia(user_id: str, residencia_id: str):
     updated = residencia_ref.get().to_dict()
     return ResidenceResponse(**updated)
 
-@cidadao_router.get("/ver_mapa")
-async def ver_mapa():
-    return {"message": "Aqui está o mapa com as coop."}
+@cidadao_router.get("/ver_mapa/{user_id}")
+async def ver_mapa(user_id: str):
+    verificar_usuario(user_id)
+
+    residencias_ref = db.collection(USUARIOS_COLLECTION).document(user_id)\
+        .collection(RESIDENCIAS_COLLECTION)
+
+    bairros_usuario = set()
+    for doc in residencias_ref.stream():
+        data = doc.to_dict()
+        endereco = data.get("endereco", {})
+        bairro = endereco.get("bairro")
+        if bairro:
+            bairros_usuario.add(bairro.lower())
+
+    if not bairros_usuario:
+        raise HTTPException(status_code=404, detail="Nenhum bairro encontrado para suas residências.")
+
+    usuarios_ref = db.collection(USUARIOS_COLLECTION)
+    cooperativas_ativas = []
+
+    for doc in usuarios_ref.stream():
+        usuario = doc.to_dict()
+        if usuario.get("role") == "cooperativa":
+            bairros_coop = [b.lower().strip() for b in usuario.get("bairros_atendidos", [])]
+            if any(b in bairros_usuario for b in bairros_coop):
+                cooperativas_ativas.append(usuario)
+
+    if not cooperativas_ativas:
+        return {"message": "Nenhuma cooperativa atende sua região."}
+
+    else:
+        mapa = gerar_mapa_com_coops(cooperativas_ativas)
+        return {"cooperativas": cooperativas_ativas,
+                "mapa": mapa}
+
 
 @cidadao_router.get("/ver_rota/{user_id}")
+async def ver_rota(user_id: str):
+    verificar_usuario(user_id)
+
+    residencias_ref = db.collection(USUARIOS_COLLECTION).document(user_id)\
+        .collection(RESIDENCIAS_COLLECTION)
+    residencia_ids = [doc.id for doc in residencias_ref.stream()]
+
+    if not residencia_ids:
+        raise HTTPException(status_code=404, detail="Usuário não possui residências.")
+
+    hoje = date.today().isoformat()
+    rotas_ref = db.collection("rotas").where("data", "==", hoje)
+
+    rotas_do_usuario = []
+    for rota_doc in rotas_ref.stream():
+        rota = rota_doc.to_dict()
+        if any(res_id in rota.get("residencias", []) for res_id in residencia_ids):
+            rotas_do_usuario.append(rota)
+
+    if not rotas_do_usuario:
+        return {"message": "Nenhuma residência do usuário está em rota ativa hoje."}
+
+   
+    rota_visual = gerar_rota_no_mapa(rotas_do_usuario)
+
+    return {
+        "rotas": rotas_do_usuario,
+        "rota_visual": rota_visual
+    }
+
 
 @cidadao_router.post("/feedback/{user_id}", status_code=201)
 async def enviar_feedback(user_id: str, feedback: FeedbackColeta):
     verificar_usuario(user_id)
-    #Tem que verificar se alguma residencia dele ta em rota ativa
+
+    residencias_ref = db.collection(USUARIOS_COLLECTION).document(user_id)\
+        .collection(RESIDENCIAS_COLLECTION)
+    residencia_ids = [doc.id for doc in residencias_ref.stream()]
+
+    if not residencia_ids:
+        raise HTTPException(status_code=404, detail="Usuário não possui residências.")
+
+    hoje = date.today().isoformat()
+    rotas_ref = db.collection(ROTAS_COLLECTION).where("data", "==", hoje)
+    encontrou = False
+
+    for rota_doc in rotas_ref.stream():
+        rota = rota_doc.to_dict()
+        if any(res_id in rota.get("residencias", []) for res_id in residencia_ids):
+            encontrou = True
+            break
+
+    if not encontrou:
+        raise HTTPException(status_code=403, detail="Nenhuma coleta registrada hoje para suas residências.")
+
     feedback_data = feedback.model_dump()
     feedback_data["user_id"] = user_id
+    feedback_data["data"] = hoje
     db.collection("feedback_coletas").add(feedback_data)
+
     return {"message": "Feedback enviado com sucesso!"}
+
 
 @cidadao_router.get("/tutoriais", response_model=List[Tutorial])
 async def listar_tutoriais():

@@ -20,6 +20,7 @@ class RotaBase(BaseModel):
     data: datetime
     motoristas: List[str]
     pontos: Dict[str, float]  # lat/long 
+    residencias_ids : List[str] #lista id das residencias contempladas pela rota
     class Config:
         json_schema_extra = {
             "example": {
@@ -29,7 +30,8 @@ class RotaBase(BaseModel):
                 "pontos": {
                     "ponto1": [40.7128, -74.0060],
                     "ponto2": [34.0522, -118.2437]
-                }
+                },
+                "residencias_ids" : "1"
             }
         }
 
@@ -38,6 +40,8 @@ class RotaUpdate(BaseModel):
     data: Optional[datetime]
     motoristas: Optional[List[str]]
     pontos: Optional[Dict[str, float]]
+    residencias_ids : List[str] #lista id das residencias contempladas pela rota
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -47,7 +51,8 @@ class RotaUpdate(BaseModel):
                 "pontos": {
                     "ponto1": [40.7128, -74.0060],
                     "ponto2": [34.0522, -118.2437]
-                }
+                },
+                "residencias_ids" : "1"
             }
         }
 
