@@ -20,7 +20,7 @@ class MotoristaCreate(BaseModel):
                 "email": "exemplo@email.com",
                 "senha": "senhaSegura123",
                 "coop_id" : "1",
-                "bairro" : "Farol"
+                "bairro" : ["Farol"]
             }
         }
 

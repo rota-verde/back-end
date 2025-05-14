@@ -7,7 +7,6 @@ from schemas.residencia import ResidenceCreate, ResidenceResponse
 from models.residencia import ResidenceModel, EnderecoModel
 from firebase_config import db
 import uuid
-
 from services import gerar_mapa_com_coops, gerar_rota_no_mapa
 from services.verificar_user import verificar_usuario
 
