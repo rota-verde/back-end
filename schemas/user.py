@@ -57,10 +57,10 @@ class UserResponse(UserBase):
     email: EmailStr
     telefone: str
     role: str
-    cpf: Optional[str]
-    cnpj: Optional[str]
-    cnh: Optional[str]
-    nome_cooperativa: Optional[str]
+    cpf: Optional[str] = None
+    cnh: Optional[str] = None
+    cnpj: Optional[str] = None
+    nome_cooperativa: Optional[str] = None
     class Config:
         from_attributes = True
         json_schema_extra = {
