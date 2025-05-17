@@ -15,19 +15,20 @@ async def listar_rotas_hoje_motorista(current_user_id: str):
     hoje = date.today()
     rotas = []
     query = db.collection(ROTAS_COLLECTION).where("motorista_id", "==", current_user_id).where("data", "==", hoje)
-    async for doc in query.stream():
+    for doc in query.stream():
         rotas.append(RouteResponse(**doc.to_dict()))
     return rotas
 
+#Falta verificar se o motorista tem acessoa essa rota p fazer isso ne
 @motorista_router.post("/iniciar_rota/{rota_id}")
 async def iniciar_rota(rota_id: str):
     rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
-    rota_doc = await rota_ref.get()
+    rota_doc = rota_ref.get()
 
     if not rota_doc.exists:
         raise HTTPException(status_code=404, detail="Rota não encontrada.")
 
-    await rota_ref.update({
+    rota_ref.update({
         "inicio": datetime.now().isoformat(),
         "status": True
     })
@@ -37,12 +38,12 @@ async def iniciar_rota(rota_id: str):
 @motorista_router.post("/finalizar_rota/{rota_id}")
 async def finalizar_rota(rota_id: str):
     rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
-    rota_doc = await rota_ref.get()
+    rota_doc = rota_ref.get()
 
     if not rota_doc.exists:
         raise HTTPException(status_code=404, detail="Rota não encontrada.")
 
-    await rota_ref.update({
+    rota_ref.update({
         "fim": datetime.now().isoformat(),
         "status": False
     })

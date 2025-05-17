@@ -157,10 +157,15 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
                 }
             })
 
+    for residencia in residencias:
+        print("Residencia individual:", residencia)
+        print("Chaves disponíveis:", residencia.keys())
+        
     pontos = dict(pontos_fixos)  
     for residencia in residencias:
         pontos[residencia["id"]] = residencia["location"]
 
+    #nao ta pegando corretamente 
     residencias_ids = [r["id"] for r in residencias]
 
     rota_data = {
