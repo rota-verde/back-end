@@ -5,11 +5,13 @@ from firebase_config import db
 from routes.auth import auth_router
 from routes.cidadao import cidadao_router
 from routes.cooperativa import coop_router
+from routes.motorista import motorista_router
 
 app = FastAPI()
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(cidadao_router, prefix="/cidadao", tags=["cidadao"])
 app.include_router(coop_router, prefix="/cooperativa", tags=["cooperativa"])
+app.include_router(motorista_router, prefix="/motorista", tags = ["motorista"])
 
 
 @app.get("/home")

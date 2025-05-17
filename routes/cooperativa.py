@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from firebase_config import db
+from models.residencia import EnderecoModel
 from models.rota import RotaModel
 from schemas.cooperativa import RotaUpdate
 from schemas.motorista import MotoristaCreate, MotoristaResponse
@@ -12,11 +13,35 @@ from services.verificar_user import verificar_usuario
 
 coop_router = APIRouter()
 
-COOPERATIVAS_COLLECTION = "cooperativas"
 MOTORISTAS_COLLECTION = "motoristas"
 ROTAS_COLLECTION = "rotas"
 
+@coop_router.post("/cadastrar_bairros/{user_id}", response_model= EnderecoModel, status_code=201)
+async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
+    user_ref = db.collection("usuarios").document(coop_id)
+    user_doc = user_ref.get()
 
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    
+    user_data = user_doc.to_dict()
+    if user_data.get("role") != "cooperativa":
+        raise HTTPException(status_code=403, detail="Usuário não é uma cooperativa.")
+
+    if not endereco.bairros_atendidos:
+        raise HTTPException(status_code=400, detail="Campo 'bairros_atendidos' está vazio.")
+
+    user_ref.update({
+        "endereco.bairros_atendidos": endereco.bairros_atendidos
+    })
+
+    return {
+        "message": "Bairros atendidos atualizados com sucesso.",
+        "bairros_atendidos": endereco.bairros_atendidos
+    }
+
+
+    
 @coop_router.post("/cadastrar_motoristas/{user_id}", response_model=MotoristaResponse, status_code=201)
 async def cadastrar_motoristas(motorista: MotoristaCreate, request: Request, coop_id : str):
     verificar_usuario(coop_id)
@@ -57,45 +82,101 @@ async def listar_motorista(motorista_id: str, request: Request, user_id : str):
         raise HTTPException(status_code=403, detail="Acesso negado.")
     return MotoristaResponse(**motorista_data)
 
+#Falta deletar e editar motorista mas deixa p depois
 
 from datetime import datetime, timedelta
-
-@coop_router.post("/criar_rota", response_model=RouteResponse)
+{
+  "bairro": "Centro",
+  "data": "2023-10-01",
+  "hora_inicio": "08:00:00",
+  "motorista_id": "4b2cc897-9ed8-423f-b119-50ccc9ef1631",
+  "pontos": {
+    "ponto1": [
+      40.7128,
+      -74.006
+    ],
+    "ponto2": [
+      34.0522,
+      -118.2437
+    ]
+  },
+  "residencias_incluidas_ids": [
+    "7154fa6d-cc84-4326-a0af-e3ea8c1770d4"
+]
+}
+@coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse)
 async def criar_rota(rota: RouteCreate, coop_id: str):
-    verificar_usuario(coop_id)
+    verificar_usuario(coop_id) 
 
-    rota_id = str(uuid.uuid4())
     now = datetime.now()
-
-    coop_doc = db.collection(COOPERATIVAS_COLLECTION).document(coop_id).get()
-    if not coop_doc.exists:
-        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
-    bairros_atendidos = coop_doc.to_dict().get("bairros", [])
-
     uma_hora_atras = now - timedelta(hours=1)
-    residencias_query = db.collection("residencias").where("coletavel", "==", True)
+    rota_id = str(uuid.uuid4())
+
+    coop_doc = db.collection("usuarios").document(coop_id).get()
+    if not coop_doc.exists or coop_doc.to_dict().get("role") != "cooperativa":
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+
+    coop_doc = db.collection("usuarios").document(coop_id).get()
+    if not coop_doc.exists or coop_doc.to_dict().get("role") != "cooperativa":
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+
+    coop_data = coop_doc.to_dict()
+    endereco_data = coop_data.get("endereco", {})
+    bairros_atendidos = endereco_data.get("bairros_atendidos", [])
+
+    if rota.bairro not in bairros_atendidos:
+        raise HTTPException(status_code=400, detail="Bairro não atendido pela cooperativa.")
+
+
+    # Pega pontos fixos da cooperativa
+    pontos_fixos = [
+        {
+            "latitude": -9.649848,
+            "longitude": -35.708949
+        },
+        {
+            "latitude": -9.660184,
+            "longitude": -35.735163
+        }
+    ]
+
+    residencias_query = db.collection("residencias") \
+        .where("coletavel", "==", True) \
+        .where("bairro", "==", rota.bairro)
+
     residencias = []
-    async for r in residencias_query.stream():
+    for r in residencias_query.stream():
         r_data = r.to_dict()
-        if r_data["bairro"] in bairros_atendidos and datetime.fromisoformat(r_data["notificado_em"]) >= uma_hora_atras:
+        location = r_data.get("location")
+        if location and "latitude" in location and "longitude" in location:
             residencias.append({
                 "id": r.id,
-                "endereco": r_data["endereco"],
-                "bairro": r_data["bairro"]
+                "location": {
+                    "latitude": location["latitude"],
+                    "longitude": location["longitude"]
+                }
             })
 
-    rota_data = rota.model_dump()
-    rota_data.update({
+    pontos = dict(pontos_fixos)  
+    for residencia in residencias:
+        pontos[residencia["id"]] = residencia["location"]
+
+    residencias_ids = [r["id"] for r in residencias]
+
+    rota_data = {
         "id": rota_id,
         "cooperativa_id": coop_id,
-        "motoristas": [rota.motorista_id],
-        "residencias": residencias,
-        "data": date.today(),
-        "inicio": None,
-        "fim": None,
-        "feedbacks": 0
-    })
-    await db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
+        "motorista_id": rota.motorista_id,
+        "residencias_incluidas_ids": residencias_ids,
+        "bairro": rota.bairro,
+        "data": rota.data.isoformat(),
+        "hora_inicio": rota.hora_inicio.isoformat(),
+        "status": True,
+        "pontos": pontos,
+        "feedbacks": [],
+    }
+
+    db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
     return RouteResponse(**rota_data)
 
 
