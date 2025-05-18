@@ -41,7 +41,11 @@ async def login_user(credentials: UserLogin):
             email=credentials.email,
             password=credentials.senha
         )
-        return JSONResponse(content={"token": user['idToken']}, status_code=200)
+        decoded_token = auth.verify_id_token(user['idToken'])
+        user_uid = decoded_token['uid']
+        user_doc = db.collection("usuarios").document(user_uid).get()
+        user_data = user_doc.to_dict()
+        return JSONResponse(content={"token": user['idToken'], "role": user_data['role']}, status_code=200)
     except FirebaseError:
         raise HTTPException(status_code=400, detail="Email ou senha inválidos.")
 
