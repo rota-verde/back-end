@@ -6,13 +6,14 @@ from routes.auth import auth_router
 from routes.cidadao import cidadao_router
 from routes.cooperativa import coop_router
 from routes.motorista import motorista_router
+from services import popular_bd
 
 app = FastAPI()
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(cidadao_router, prefix="/cidadao", tags=["cidadao"])
 app.include_router(coop_router, prefix="/cooperativa", tags=["cooperativa"])
 app.include_router(motorista_router, prefix="/motorista", tags = ["motorista"])
-
+#popular_bd.popular_bd_teste()
 
 @app.get("/home")
 def read_root():

@@ -85,25 +85,7 @@ async def listar_motorista(motorista_id: str, request: Request, user_id : str):
 #Falta deletar e editar motorista mas deixa p depois
 
 from datetime import datetime, timedelta
-{
-  "bairro": "Centro",
-  "data": "2023-10-01",
-  "hora_inicio": "08:00:00",
-  "motorista_id": "4b2cc897-9ed8-423f-b119-50ccc9ef1631",
-  "pontos": {
-    "ponto1": [
-      40.7128,
-      -74.006
-    ],
-    "ponto2": [
-      34.0522,
-      -118.2437
-    ]
-  },
-  "residencias_incluidas_ids": [
-    "7154fa6d-cc84-4326-a0af-e3ea8c1770d4"
-]
-}
+
 @coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse)
 async def criar_rota(rota: RouteCreate, coop_id: str):
     verificar_usuario(coop_id) 
@@ -178,7 +160,6 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
         "hora_inicio": rota.hora_inicio.isoformat(),
         "status": True,
         "pontos": pontos,
-        "feedbacks": [],
     }
 
     db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
@@ -263,9 +244,10 @@ async def listar_rotas_hoje(request: Request):
 
 
 @coop_router.get("/feedbacks/{rota_id}", response_model=RouteResponse)
-async def coletar_feedbacks_diario(rota_id: str, request: Request):
-    user_id = request.headers.get("Authorization")
+async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
+
     verificar_usuario(user_id)
+    
 
     # A lógica para coletar feedbacks será implementada depois
     pass

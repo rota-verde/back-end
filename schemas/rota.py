@@ -43,7 +43,6 @@ class RouteResponse(BaseModel):
     data: date
     hora_inicio: time
     status: bool
-    feedbacks: List[FeedbackSchema]
     class Config:
         from_attributes = True
         json_schema_extra = {
@@ -55,15 +54,5 @@ class RouteResponse(BaseModel):
                 "data": "2023-10-01",
                 "hora_inicio": "08:00:00",
                 "status": "True",
-                "feedbacks": [
-                    {
-                        "residencia_id": "residencia1",
-                        "coletado": True
-                    },
-                    {
-                        "residencia_id": "residencia2",
-                        "coletado": False
-                    }
-                ]
             }
         }
