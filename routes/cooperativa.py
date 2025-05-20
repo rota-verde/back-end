@@ -16,7 +16,7 @@ coop_router = APIRouter()
 MOTORISTAS_COLLECTION = "motoristas"
 ROTAS_COLLECTION = "rotas"
 
-@coop_router.post("/cadastrar_bairros/{user_id}", response_model= EnderecoModel, status_code=201)
+@coop_router.put("/cadastrar_bairros/{user_id}", response_model= EnderecoModel, status_code=201)
 async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
     user_ref = db.collection("usuarios").document(coop_id)
     user_doc = user_ref.get()

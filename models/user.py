@@ -8,5 +8,6 @@ class UserModel(UserBase):
     cnpj: Optional[str] = None
     cnh: Optional[str] = None
     nome_cooperativa: Optional[str] = None
+    area_atuacao: Optional[List[str]] = None
     cooperativa_id: Optional[str] = None
     auth_2fa_enabled: Optional[bool] = False
