@@ -23,7 +23,8 @@ class UserCreate(UserBase):
     cpf: Optional[str] = None
     cnpj: Optional[str] = None
     cnh: Optional[str] = None
-    nome_cooperativa: Optional[str] = None
+    nome_cooperativa: Optional[str] = None,
+    area_atuacao: Optional[List[str]] = None
 
     class Config:
         json_schema_extra = {
@@ -37,6 +38,7 @@ class UserCreate(UserBase):
                 "cnpj" :"12345678",
                 "cnh": "12355",
                 "nome_cooperativa": "coop",
+                "area_atuacao" : ["Centro", "Farol"]
             }
         }
 
@@ -57,10 +59,6 @@ class UserResponse(UserBase):
     email: EmailStr
     telefone: str
     role: str
-    cpf: Optional[str] = None
-    cnh: Optional[str] = None
-    cnpj: Optional[str] = None
-    nome_cooperativa: Optional[str] = None
     class Config:
         from_attributes = True
         json_schema_extra = {

@@ -19,6 +19,9 @@ async def listar_rotas_hoje_motorista(current_user_id: str):
         rotas.append(RouteResponse(**doc.to_dict()))
     return rotas
 
+#Acessar a rota e acompanha-la if status = true = apertou p inicar
+
+
 #Falta verificar se o motorista tem acessoa essa rota p fazer isso ne
 @motorista_router.post("/iniciar_rota/{rota_id}")
 async def iniciar_rota(rota_id: str):
