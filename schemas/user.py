@@ -3,7 +3,7 @@ from typing import List, Optional
 
 class UserBase(BaseModel):
     nome_usuario: str
-    email: str
+    email: EmailStr
     telefone: str
     role: str  # "cidadao", "cooperativa" ou "motorista"
 
@@ -43,7 +43,7 @@ class UserCreate(UserBase):
         }
 
 class UserLogin(BaseModel):
-    email: str
+    email: EmailStr
     senha: str
     class Config:
         json_schema_extra = {

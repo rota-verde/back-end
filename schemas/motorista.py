@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
@@ -7,7 +7,7 @@ from schemas.cooperativa import MotoristaBase
 class MotoristaCreate(BaseModel):
     nome: str
     telefone: str
-    email: str
+    email: EmailStr
     senha: str
     coop_id : str
     bairro: List[str]

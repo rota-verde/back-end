@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from http import HTTPStatus
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from firebase_config import db
@@ -23,7 +24,7 @@ async def listar_rotas_hoje_motorista(current_user_id: str):
 
 
 #Falta verificar se o motorista tem acessoa essa rota p fazer isso ne
-@motorista_router.post("/iniciar_rota/{rota_id}")
+@motorista_router.post("/iniciar_rota/{rota_id}", status_code=HTTPStatus.CREATED)
 async def iniciar_rota(rota_id: str):
     rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
     rota_doc = rota_ref.get()
@@ -38,7 +39,7 @@ async def iniciar_rota(rota_id: str):
 
     return {"message": "Rota iniciada com sucesso."}
 
-@motorista_router.post("/finalizar_rota/{rota_id}")
+@motorista_router.post("/finalizar_rota/{rota_id}", status_code=HTTPStatus.CREATED)
 async def finalizar_rota(rota_id: str):
     rota_ref = db.collection(ROTAS_COLLECTION).document(rota_id)
     rota_doc = rota_ref.get()

@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 
-from main import app
+from app import app
 
 def test_root_deve_retornar_ok():  
     client = TestClient(app)  

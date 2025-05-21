@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from firebase_admin import auth
@@ -7,7 +8,7 @@ from schemas.user import UserCreate, UserLogin, UserResponse, UserBase
 
 auth_router = APIRouter()
 
-@auth_router.post("/register", response_model=UserResponse, status_code=201)
+@auth_router.post("/register", response_model=UserResponse, status_code=HTTPStatus.CREATED)
 async def register_user(user: UserCreate):
     try:
         firebase_user = firebase_instance.auth().create_user_with_email_and_password(
@@ -35,7 +36,7 @@ async def register_user(user: UserCreate):
     except FirebaseError as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar conta: {str(e)}")
 
-@auth_router.post("/login")
+@auth_router.post("/login", status_code=HTTPStatus.OK)
 async def login_user(credentials: UserLogin):
     try:
         user = firebase_instance.auth().sign_in_with_email_and_password(
@@ -50,7 +51,7 @@ async def login_user(credentials: UserLogin):
     except FirebaseError:
         raise HTTPException(status_code=400, detail="Email ou senha inválidos.")
 
-@auth_router.get("/user/{user_id}", response_model=UserBase)
+@auth_router.get("/user/{user_id}", response_model=UserBase, status_code=HTTPStatus.OK)
 async def get_user(user_id: str):
     try:
         user_doc = db.collection("usuarios").document(user_id).get()

@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from firebase_config import db
@@ -86,7 +87,7 @@ async def listar_motorista(motorista_id: str, request: Request, user_id : str):
 
 from datetime import datetime, timedelta
 
-@coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse)
+@coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse, status_code=HTTPStatus.CREATED)
 async def criar_rota(rota: RouteCreate, coop_id: str):
     verificar_usuario(coop_id) 
 

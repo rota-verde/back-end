@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from http import HTTPStatus
 from typing import List
 from fastapi import APIRouter, Body, HTTPException
 from schemas.cooperativa import Tutorial
@@ -18,7 +19,7 @@ ROTAS_COLLECTION = "rotas"
 
 
 
-@cidadao_router.post("/cadastrar_residencias/{user_id}", response_model=ResidenceResponse, status_code=201)
+@cidadao_router.post("/cadastrar_residencias/{user_id}", response_model=ResidenceResponse, status_code=HTTPStatus.CREATED)
 async def cadastrar_residencia(user_id: str, residencia: ResidenceCreate):
     verificar_usuario(user_id)
     residencia_id = str(uuid.uuid4())
@@ -180,7 +181,7 @@ async def ver_rota(user_id: str):
     }
 
 
-@cidadao_router.post("/feedback/{user_id}", status_code=201)
+@cidadao_router.post("/feedback/{user_id}", status_code=HTTPStatus.CREATED)
 async def enviar_feedback(user_id: str, feedback: FeedbackColeta):
     verificar_usuario(user_id)
 
