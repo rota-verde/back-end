@@ -89,15 +89,11 @@ from datetime import datetime, timedelta
 
 @coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse, status_code=HTTPStatus.CREATED)
 async def criar_rota(rota: RouteCreate, coop_id: str):
-    verificar_usuario(coop_id) 
+    verificar_usuario(coop_id)  
 
     now = datetime.now()
     uma_hora_atras = now - timedelta(hours=1)
     rota_id = str(uuid.uuid4())
-
-    coop_doc = db.collection("usuarios").document(coop_id).get()
-    if not coop_doc.exists or coop_doc.to_dict().get("role") != "cooperativa":
-        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
 
     coop_doc = db.collection("usuarios").document(coop_id).get()
     if not coop_doc.exists or coop_doc.to_dict().get("role") != "cooperativa":
@@ -110,45 +106,37 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
     if rota.bairro not in bairros_atendidos:
         raise HTTPException(status_code=400, detail="Bairro não atendido pela cooperativa.")
 
-
-    # Pega pontos fixos da cooperativa
     pontos_fixos = [
-        {
-            "latitude": -9.649848,
-            "longitude": -35.708949
-        },
-        {
-            "latitude": -9.660184,
-            "longitude": -35.735163
-        }
+        {"latitude": -9.649848, "longitude": -35.708949},
+        {"latitude": -9.660184, "longitude": -35.735163}
     ]
 
-    residencias_query = db.collection("residencias") \
-        .where("coletavel", "==", True) \
-        .where("bairro", "==", rota.bairro)
-
     residencias = []
-    for r in residencias_query.stream():
-        r_data = r.to_dict()
-        location = r_data.get("location")
-        if location and "latitude" in location and "longitude" in location:
-            residencias.append({
-                "id": r.id,
-                "location": {
-                    "latitude": location["latitude"],
-                    "longitude": location["longitude"]
-                }
-            })
+    usuarios_ref = db.collection("usuarios").stream()
 
-    for residencia in residencias:
-        print("Residencia individual:", residencia)
-        print("Chaves disponíveis:", residencia.keys())
-        
-    pontos = dict(pontos_fixos)  
+    for usuario in usuarios_ref:
+        user_id = usuario.id
+        residencias_ref = db.collection("usuarios").document(user_id).collection("residencias") \
+            .where("coletavel", "==", True) \
+            .where("endereco.bairro", "==", rota.bairro) \
+            .stream()
+
+        for r in residencias_ref:
+            r_data = r.to_dict()
+            location = r_data.get("location")
+            if location and "latitude" in location and "longitude" in location:
+                residencias.append({
+                    "id": r.id,
+                    "location": {
+                        "latitude": location["latitude"],
+                        "longitude": location["longitude"]
+                    }
+                })
+
+    pontos = {f"fixo_{i}": p for i, p in enumerate(pontos_fixos)}
     for residencia in residencias:
         pontos[residencia["id"]] = residencia["location"]
 
-    #nao ta pegando corretamente 
     residencias_ids = [r["id"] for r in residencias]
 
     rota_data = {
@@ -163,7 +151,7 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
         "pontos": pontos,
     }
 
-    db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
+    db.collection("rotas").document(rota_id).set(rota_data)
     return RouteResponse(**rota_data)
 
 
