@@ -106,10 +106,6 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
     if rota.bairro not in bairros_atendidos:
         raise HTTPException(status_code=400, detail="Bairro não atendido pela cooperativa.")
 
-    pontos_fixos = [
-        {"latitude": -9.649848, "longitude": -35.708949},
-        {"latitude": -9.660184, "longitude": -35.735163}
-    ]
 
     residencias = []
     usuarios_ref = db.collection("usuarios").stream()
@@ -133,7 +129,7 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
                     }
                 })
 
-    pontos = {f"fixo_{i}": p for i, p in enumerate(pontos_fixos)}
+    pontos = []
     for residencia in residencias:
         pontos[residencia["id"]] = residencia["location"]
 
