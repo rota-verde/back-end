@@ -101,7 +101,7 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
 
     coop_data = coop_doc.to_dict()
     endereco_data = coop_data.get("endereco", {})
-    bairros_atendidos = endereco_data.get("bairros_atendidos", [])
+    bairros_atendidos = endereco_data.get("area_atuacao", [])
 
     if rota.bairro not in bairros_atendidos:
         raise HTTPException(status_code=400, detail="Bairro não atendido pela cooperativa.")

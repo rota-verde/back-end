@@ -10,7 +10,6 @@ class MotoristaCreate(BaseModel):
     email: EmailStr
     senha: str
     coop_id : str
-    bairro: List[str]
     em_rota : bool = False
     class Config:
         json_schema_extra = {
@@ -20,7 +19,6 @@ class MotoristaCreate(BaseModel):
                 "email": "exemplo@email.com",
                 "senha": "senhaSegura123",
                 "coop_id" : "1",
-                "bairro" : ["Farol"]
             }
         }
 
