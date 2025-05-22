@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from firebase_config import db
 from schemas.motorista import IniciarColetaRequest, FinalizarColetaRequest
 from schemas.rota import RouteResponse, FeedbackSchema
+from services import acompanhar_rota, verificar_user
 
 motorista_router = APIRouter()
 
@@ -20,8 +21,44 @@ async def listar_rotas_hoje_motorista(current_user_id: str):
         rotas.append(RouteResponse(**doc.to_dict()))
     return rotas
 
-#Acessar a rota e acompanha-la if status = true = apertou p inicar
+@motorista_router.get(
+    "/rota/atual",
+    response_model=RouteResponse,
+    status_code=HTTPStatus.OK,
+    summary="Retorna a rota atualmente iniciada para o motorista"
+)
+async def obter_rota_atual(
+    current_user_id: str 
+):
+    """
+    Busca a rota com `status=True` que pertence ao motorista logado e
+    retorna o resultado da função `rota()`.
+    """
+    verificar_user(current_user_id)
+    query = (
+        db.collection(ROTAS_COLLECTION)
+          .where("motorista_id", "==", current_user_id)
+          .where("status", "==", True)
+          .limit(1)
+    )
+    docs = list(query.stream())
+    if not docs:
+        raise HTTPException(
+            status_code=404,
+            detail="Nenhuma rota iniciada encontrada para este motorista."
+        )
 
+    rota_doc = docs[0]
+    rota_data = rota_doc.to_dict()
+    rota_data["id"] = rota_doc.id  
+
+   
+    direcionamento_rota = acompanhar_rota(rota_data)
+
+    return {
+        **rota_data,
+        **direcionamento_rota
+    }
 
 #Falta verificar se o motorista tem acessoa essa rota p fazer isso ne
 @motorista_router.post("/iniciar_rota/{rota_id}", status_code=HTTPStatus.CREATED)
