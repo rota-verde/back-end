@@ -1,4 +1,3 @@
-# tests/models/test_user.py
 import pytest
 from schemas.user import UserCreate, UserLogin, UserResponse
 
@@ -84,3 +83,4 @@ def test_user_response_cooperativa(cooperativa_data):
     user = UserResponse(uid="user-3", **cooperativa_data)
     assert user.uid == "user-3"
     assert user.role == "cooperativa"
+    
