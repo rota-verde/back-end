@@ -238,6 +238,7 @@ async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
     # A lógica para coletar feedbacks será implementada depois
     pass
 
+
 @coop_router.get("/listar", response_model=List[CooperativaResponse])
 async def listar_cooperativas():
     try:
@@ -263,3 +264,51 @@ async def listar_cooperativas():
         return cooperativas
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar cooperativas: {str(e)}")
+    
+#fetch a specific cooperativa by coop_id
+@coop_router.get("/cooperativa/{coop_id}", response_model=CooperativaResponse)
+async def listar_cooperativa(coop_id: str, request: Request):
+    verificar_usuario(coop_id)
+
+    coop_ref = db.collection(USUARIOS_COLLECTION).document(coop_id)
+    coop_doc = coop_ref.get()
+    if not coop_doc.exists:
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+    
+    coop_data = coop_doc.to_dict()
+    if coop_data.get("role") != "cooperativa":
+        raise HTTPException(status_code=403, detail="Acesso negado.")
+
+    return CooperativaResponse(**coop_data)
+
+#fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
+@coop_router.get("/residencias/area_atuacao/{coop_id}", response_model=List[EnderecoModel])
+async def listar_residencias_coop(coop_id: str, request: Request):
+    verificar_usuario(coop_id)
+
+    coop_ref = db.collection(USUARIOS_COLLECTION).document(coop_id)
+    coop_doc = coop_ref.get()
+    if not coop_doc.exists:
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+    
+    coop_data = coop_doc.to_dict()
+    area_atuacao = coop_data.get("area_atuacao", [])
+
+    if not area_atuacao:
+        raise HTTPException(status_code=404, detail="Nenhuma area encontrado.")
+
+    residencias = []
+    usuarios_ref = db.collection("usuarios").stream()
+
+    for usuario in usuarios_ref:
+        user_id = usuario.id
+        residencias_ref = db.collection("usuarios").document(user_id).collection("residencias") \
+            .where("endereco.bairro", "in", area_atuacao) \
+            .stream()
+
+        for r in residencias_ref:
+            r_data = r.to_dict()
+            residencias.append(EnderecoModel(**r_data.get("endereco", {})))
+
+    return residencias
+

@@ -32,7 +32,7 @@ async def obter_rota_atual(
 ):
     """
     Busca a rota com `status=True` que pertence ao motorista logado e
-    retorna o resultado da função `rota()`.
+    retorna o resultado da função.
     """
     verificar_user(current_user_id)
     query = (
