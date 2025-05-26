@@ -19,7 +19,7 @@ class RotaBase(BaseModel):
     nome: str
     data: datetime
     motoristas: List[str]
-    pontos: Dict[str, float]  # lat/long 
+    pontos: Dict[str, float]  # lat/long
     residencias_ids : List[str] #lista id das residencias contempladas pela rota
     class Config:
         json_schema_extra = {
@@ -60,3 +60,28 @@ class Tutorial(BaseModel):
     id: str
     titulo: str
     conteudo: str
+
+class CooperativaResponse(BaseModel):
+    id: str
+    nome_usuario: str
+    nome_cooperativa: str
+    area_atuacao: List[str]
+    location: Dict[str, float]
+    endereco: Dict[str, List[str]]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "123",
+                "nome_usuario": "João Silva",
+                "nome_cooperativa": "Coop Verde",
+                "area_atuacao": ["Reciclagem", "Compostagem"],
+                "location": {
+                    "latitude": -23.5505,
+                    "longitude": -46.6333
+                },
+                "endereco": {
+                    "bairros_atendidos": ["Centro", "Vila Mariana"]
+                }
+            }
+        }

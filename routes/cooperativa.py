@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 from firebase_config import db
 from models.residencia import EnderecoModel
 from models.rota import RotaModel
-from schemas.cooperativa import RotaUpdate
+from schemas.cooperativa import RotaUpdate, CooperativaResponse
 from schemas.motorista import MotoristaCreate, MotoristaResponse
 from schemas.rota import RouteCreate, RouteResponse
 from datetime import date
@@ -16,6 +16,7 @@ coop_router = APIRouter()
 
 MOTORISTAS_COLLECTION = "motoristas"
 ROTAS_COLLECTION = "rotas"
+USUARIOS_COLLECTION = "usuarios"
 
 @coop_router.put("/cadastrar_bairros/{user_id}", response_model= EnderecoModel, status_code=201)
 async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
@@ -24,7 +25,7 @@ async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
 
     if not user_doc.exists:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-    
+
     user_data = user_doc.to_dict()
     if user_data.get("role") != "cooperativa":
         raise HTTPException(status_code=403, detail="Usuário não é uma cooperativa.")
@@ -42,7 +43,7 @@ async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
     }
 
 
-    
+
 @coop_router.post("/cadastrar_motoristas/{user_id}", response_model=MotoristaResponse, status_code=201)
 async def cadastrar_motoristas(motorista: MotoristaCreate, request: Request, coop_id : str):
     verificar_usuario(coop_id)
@@ -89,7 +90,7 @@ from datetime import datetime, timedelta
 
 @coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse, status_code=HTTPStatus.CREATED)
 async def criar_rota(rota: RouteCreate, coop_id: str):
-    verificar_usuario(coop_id)  
+    verificar_usuario(coop_id)
 
     now = datetime.now()
     uma_hora_atras = now - timedelta(hours=1)
@@ -232,7 +233,33 @@ async def listar_rotas_hoje(request: Request):
 async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
 
     verificar_usuario(user_id)
-    
+
 
     # A lógica para coletar feedbacks será implementada depois
     pass
+
+@coop_router.get("/listar", response_model=List[CooperativaResponse])
+async def listar_cooperativas():
+    try:
+        cooperativas = []
+        # Query all users with role "cooperativa"
+        query = db.collection(USUARIOS_COLLECTION).where("role", "==", "cooperativa")
+
+        for doc in query.stream():
+            data = doc.to_dict()
+            # Only include required fields
+            cooperativa = {
+                "id": doc.id,
+                "nome_usuario": data.get("nome_usuario", ""),
+                "nome_cooperativa": data.get("nome_cooperativa", ""),
+                "area_atuacao": data.get("area_atuacao", []),
+                "location": data.get("location", {"latitude": 0, "longitude": 0}),
+                "endereco": {
+                    "bairros_atendidos": data.get("endereco", {}).get("bairros_atendidos", [])
+                }
+            }
+            cooperativas.append(cooperativa)
+
+        return cooperativas
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar cooperativas: {str(e)}")
