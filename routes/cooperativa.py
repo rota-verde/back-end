@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 from firebase_config import db
 from models.residencia import EnderecoModel
 from models.rota import RotaModel
-from schemas.cooperativa import RotaUpdate
+from schemas.cooperativa import RotaUpdate, CooperativaResponse
 from schemas.motorista import MotoristaCreate, MotoristaResponse
 from schemas.rota import RouteCreate, RouteResponse
 from datetime import date
@@ -16,6 +16,7 @@ coop_router = APIRouter()
 
 MOTORISTAS_COLLECTION = "motoristas"
 ROTAS_COLLECTION = "rotas"
+USUARIOS_COLLECTION = "usuarios"
 
 @coop_router.put("/cadastrar_bairros/{user_id}", response_model= EnderecoModel, status_code=201)
 async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
@@ -24,7 +25,7 @@ async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
 
     if not user_doc.exists:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-    
+
     user_data = user_doc.to_dict()
     if user_data.get("role") != "cooperativa":
         raise HTTPException(status_code=403, detail="Usuário não é uma cooperativa.")
@@ -42,7 +43,7 @@ async def atualizar_bairros_atendidos(coop_id: str, endereco: EnderecoModel):
     }
 
 
-    
+
 @coop_router.post("/cadastrar_motoristas/{user_id}", response_model=MotoristaResponse, status_code=201)
 async def cadastrar_motoristas(motorista: MotoristaCreate, request: Request, coop_id : str):
     verificar_usuario(coop_id)
@@ -89,7 +90,7 @@ from datetime import datetime, timedelta
 
 @coop_router.post("/criar_rota/{coop_id}", response_model=RouteResponse, status_code=HTTPStatus.CREATED)
 async def criar_rota(rota: RouteCreate, coop_id: str):
-    verificar_usuario(coop_id) 
+    verificar_usuario(coop_id)
 
     now = datetime.now()
     uma_hora_atras = now - timedelta(hours=1)
@@ -99,56 +100,40 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
     if not coop_doc.exists or coop_doc.to_dict().get("role") != "cooperativa":
         raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
 
-    coop_doc = db.collection("usuarios").document(coop_id).get()
-    if not coop_doc.exists or coop_doc.to_dict().get("role") != "cooperativa":
-        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
-
     coop_data = coop_doc.to_dict()
     endereco_data = coop_data.get("endereco", {})
-    bairros_atendidos = endereco_data.get("bairros_atendidos", [])
+    bairros_atendidos = endereco_data.get("area_atuacao", [])
 
     if rota.bairro not in bairros_atendidos:
         raise HTTPException(status_code=400, detail="Bairro não atendido pela cooperativa.")
 
 
-    # Pega pontos fixos da cooperativa
-    pontos_fixos = [
-        {
-            "latitude": -9.649848,
-            "longitude": -35.708949
-        },
-        {
-            "latitude": -9.660184,
-            "longitude": -35.735163
-        }
-    ]
-
-    residencias_query = db.collection("residencias") \
-        .where("coletavel", "==", True) \
-        .where("bairro", "==", rota.bairro)
-
     residencias = []
-    for r in residencias_query.stream():
-        r_data = r.to_dict()
-        location = r_data.get("location")
-        if location and "latitude" in location and "longitude" in location:
-            residencias.append({
-                "id": r.id,
-                "location": {
-                    "latitude": location["latitude"],
-                    "longitude": location["longitude"]
-                }
-            })
+    usuarios_ref = db.collection("usuarios").stream()
 
-    for residencia in residencias:
-        print("Residencia individual:", residencia)
-        print("Chaves disponíveis:", residencia.keys())
-        
-    pontos = dict(pontos_fixos)  
+    for usuario in usuarios_ref:
+        user_id = usuario.id
+        residencias_ref = db.collection("usuarios").document(user_id).collection("residencias") \
+            .where("coletavel", "==", True) \
+            .where("endereco.bairro", "==", rota.bairro) \
+            .stream()
+
+        for r in residencias_ref:
+            r_data = r.to_dict()
+            location = r_data.get("location")
+            if location and "latitude" in location and "longitude" in location:
+                residencias.append({
+                    "id": r.id,
+                    "location": {
+                        "latitude": location["latitude"],
+                        "longitude": location["longitude"]
+                    }
+                })
+
+    pontos = []
     for residencia in residencias:
         pontos[residencia["id"]] = residencia["location"]
 
-    #nao ta pegando corretamente 
     residencias_ids = [r["id"] for r in residencias]
 
     rota_data = {
@@ -163,7 +148,7 @@ async def criar_rota(rota: RouteCreate, coop_id: str):
         "pontos": pontos,
     }
 
-    db.collection(ROTAS_COLLECTION).document(rota_id).set(rota_data)
+    db.collection("rotas").document(rota_id).set(rota_data)
     return RouteResponse(**rota_data)
 
 
@@ -248,5 +233,86 @@ async def listar_rotas_hoje(request: Request):
 async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
 
     verificar_usuario(user_id)
+<<<<<<< HEAD
     
+=======
+
+
+    # A lógica para coletar feedbacks será implementada depois
+>>>>>>> 7caae80e1f944a5424be031cecb7bbc8c490ec5c
     pass
+
+
+@coop_router.get("/listar", response_model=List[CooperativaResponse])
+async def listar_cooperativas():
+    try:
+        cooperativas = []
+        # Query all users with role "cooperativa"
+        query = db.collection(USUARIOS_COLLECTION).where("role", "==", "cooperativa")
+
+        for doc in query.stream():
+            data = doc.to_dict()
+            # Only include required fields
+            cooperativa = {
+                "id": doc.id,
+                "nome_usuario": data.get("nome_usuario", ""),
+                "nome_cooperativa": data.get("nome_cooperativa", ""),
+                "area_atuacao": data.get("area_atuacao", []),
+                "location": data.get("location", {"latitude": 0, "longitude": 0}),
+                "endereco": {
+                    "bairros_atendidos": data.get("endereco", {}).get("bairros_atendidos", [])
+                }
+            }
+            cooperativas.append(cooperativa)
+
+        return cooperativas
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar cooperativas: {str(e)}")
+    
+#fetch a specific cooperativa by coop_id
+@coop_router.get("/cooperativa/{coop_id}", response_model=CooperativaResponse)
+async def listar_cooperativa(coop_id: str, request: Request):
+    verificar_usuario(coop_id)
+
+    coop_ref = db.collection(USUARIOS_COLLECTION).document(coop_id)
+    coop_doc = coop_ref.get()
+    if not coop_doc.exists:
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+    
+    coop_data = coop_doc.to_dict()
+    if coop_data.get("role") != "cooperativa":
+        raise HTTPException(status_code=403, detail="Acesso negado.")
+
+    return CooperativaResponse(**coop_data)
+
+#fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
+@coop_router.get("/residencias/area_atuacao/{coop_id}", response_model=List[EnderecoModel])
+async def listar_residencias_coop(coop_id: str, request: Request):
+    verificar_usuario(coop_id)
+
+    coop_ref = db.collection(USUARIOS_COLLECTION).document(coop_id)
+    coop_doc = coop_ref.get()
+    if not coop_doc.exists:
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+    
+    coop_data = coop_doc.to_dict()
+    area_atuacao = coop_data.get("area_atuacao", [])
+
+    if not area_atuacao:
+        raise HTTPException(status_code=404, detail="Nenhuma area encontrado.")
+
+    residencias = []
+    usuarios_ref = db.collection("usuarios").stream()
+
+    for usuario in usuarios_ref:
+        user_id = usuario.id
+        residencias_ref = db.collection("usuarios").document(user_id).collection("residencias") \
+            .where("endereco.bairro", "in", area_atuacao) \
+            .stream()
+
+        for r in residencias_ref:
+            r_data = r.to_dict()
+            residencias.append(EnderecoModel(**r_data.get("endereco", {})))
+
+    return residencias
+
