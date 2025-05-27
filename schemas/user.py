@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 
+from models.residencia import EnderecoModel
+
 class UserBase(BaseModel):
     nome_usuario: str
     email: EmailStr
@@ -25,6 +27,7 @@ class UserCreate(UserBase):
     cnh: Optional[str] = None
     nome_cooperativa: Optional[str] = None,
     area_atuacao: Optional[List[str]] = None
+    endereco : EnderecoModel = None  # Supondo que EnderecoModel seja definido em outro lugar
 
     class Config:
         json_schema_extra = {
@@ -38,7 +41,13 @@ class UserCreate(UserBase):
                 "cnpj" :"12345678",
                 "cnh": "12355",
                 "nome_cooperativa": "coop",
-                "area_atuacao" : ["Centro", "Farol"]
+                "area_atuacao" : ["Centro", "Farol"],
+                "endereco": {
+                    "logradouro": "Rua Exemplo",
+                    "numero": "123",
+                    "bairro": "Centro",
+                    "cidade": "Cidade Exemplo"
+                }
             }
         }
 

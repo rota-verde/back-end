@@ -249,6 +249,4 @@ async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
 
     verificar_usuario(user_id)
     
-
-    # A lógica para coletar feedbacks será implementada depois
     pass

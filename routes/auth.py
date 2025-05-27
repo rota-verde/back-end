@@ -26,7 +26,8 @@ async def register_user(user: UserCreate):
             "cnpj": user.cnpj if user.role == "cooperativa" else None,
             "cnh": user.cnh if user.role == "motorista" else None,
             "nome_cooperativa": user.nome_cooperativa if user.role == "cooperativa" else None,
-            "area_atuacao": user.area_atuacao if user.role == "cooperativa" else None
+            "area_atuacao": user.area_atuacao if user.role == "cooperativa" else None,
+            "endereco": user.endereco.model_dump() if user.endereco else None
         })
 
         db.collection("usuarios").document(uid).set(user_data)
