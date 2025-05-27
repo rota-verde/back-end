@@ -31,6 +31,9 @@ async def register_user(user: UserCreate):
         })
 
         db.collection("usuarios").document(uid).set(user_data)
+        if user.role == "cidadao" and user.endereco:
+            db.collection("usuarios").document(uid).collection("residencias").set(user.endereco.model_dump())
+
         return UserResponse(**user_data)
     except auth.EmailAlreadyExistsError:
         raise HTTPException(status_code=400, detail=f"Conta com o email {user.email} já existe.")
