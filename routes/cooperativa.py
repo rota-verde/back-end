@@ -229,18 +229,18 @@ async def listar_rotas_hoje(request: Request):
     return rotas_hoje
 
 
-@coop_router.get("/feedbacks/{rota_id}", response_model=RouteResponse)
-async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
+# @coop_router.get("/feedbacks/{rota_id}", response_model=RouteResponse)
+# async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
 
-    verificar_usuario(user_id)
-<<<<<<< HEAD
+#     verificar_usuario(user_id)
+# <<<<<<< HEAD
     
-=======
+# =======
 
 
-    # A lógica para coletar feedbacks será implementada depois
->>>>>>> 7caae80e1f944a5424be031cecb7bbc8c490ec5c
-    pass
+#     # A lógica para coletar feedbacks será implementada depois
+# >>>>>>> 7caae80e1f944a5424be031cecb7bbc8c490ec5c
+#     pass
 
 
 @coop_router.get("/listar", response_model=List[CooperativaResponse])
