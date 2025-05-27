@@ -27,7 +27,8 @@ async def register_user(user: UserCreate):
             "cnh": user.cnh if user.role == "motorista" else None,
             "nome_cooperativa": user.nome_cooperativa if user.role == "cooperativa" else None,
             "area_atuacao": user.area_atuacao if user.role == "cooperativa" else None,
-            "endereco": user.endereco.model_dump() if user.endereco else None
+            "endereco": user.endereco.model_dump() if user.endereco else None,
+            "materiais_reciclaveis": user.materiais_reciclaveis if user.role == "cooperativa" else None
         })
 
         db.collection("usuarios").document(uid).set(user_data)
@@ -69,16 +70,38 @@ async def get_user(user_id: str):
 @auth_router.put("/user/update/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user: UserCreate):
     try:
-        auth.update_user(
-            uid=user_id,
-            email=user.email,
-            password=user.senha,
-            display_name=user.nome_usuario,
-            phone_number=user.telefone
-        )
+        update_args = {}
+        if user.email:
+            update_args["email"] = user.email
+        if user.senha:
+            update_args["password"] = user.senha
+        if user.nome_usuario:
+            update_args["display_name"] = user.nome_usuario
+        if user.telefone:
+            update_args["phone_number"] = user.telefone
+
+        if update_args:
+            auth.update_user(uid=user_id, **update_args)
 
         user_data = user.model_dump(exclude={"senha"})
+        user_data.update({
+            "uid": user_id,
+            "nome_usuario": user.nome_usuario,
+            "telefone": user.telefone,
+            "role": user.role,
+            "cpf": user.cpf if user.role == "cidadao" else None,
+            "cnpj": user.cnpj if user.role == "cooperativa" else None,
+            "cnh": user.cnh if user.role == "motorista" else None,
+            "nome_cooperativa": user.nome_cooperativa if user.role == "cooperativa" else None,
+            "area_atuacao": user.area_atuacao if user.role == "cooperativa" else None,
+            "endereco": user.endereco.model_dump() if user.endereco else None,
+            "materiais_reciclaveis": user.materiais_reciclaveis if user.role == "cooperativa" else None
+        })
+
         db.collection("usuarios").document(user_id).update(user_data)
+
+        if user.role == "cidadao" and user.endereco:
+            db.collection("usuarios").document(user_id).collection("residencias").set(user.endereco.model_dump())
 
         updated_data = db.collection("usuarios").document(user_id).get().to_dict()
         updated_data["uid"] = user_id

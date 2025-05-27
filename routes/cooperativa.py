@@ -316,3 +316,21 @@ async def listar_residencias_coop(coop_id: str, request: Request):
 
     return residencias
 
+#fetch materias reciclaveis de uma cooperativa
+@coop_router.get("/materiais_reciclaveis/{coop_id}", response_model=List[str])
+async def listar_materiais_reciclaveis(coop_id: str, request: Request):
+    verificar_usuario(coop_id)
+
+    coop_ref = db.collection(USUARIOS_COLLECTION).document(coop_id)
+    coop_doc = coop_ref.get()
+    if not coop_doc.exists:
+        raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
+    
+    coop_data = coop_doc.to_dict()
+    materiais_reciclaveis = coop_data.get("materiais_reciclaveis", [])
+
+    if not materiais_reciclaveis:
+        raise HTTPException(status_code=404, detail="Nenhum material reciclável encontrado.")
+
+    return materiais_reciclaveis
+

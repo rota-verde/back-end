@@ -27,7 +27,8 @@ class UserCreate(UserBase):
     cnh: Optional[str] = None
     nome_cooperativa: Optional[str] = None,
     area_atuacao: Optional[List[str]] = None
-    endereco : EnderecoModel = None  # Supondo que EnderecoModel seja definido em outro lugar
+    endereco : EnderecoModel = None  
+    materiais_reciclaveis: Optional[List[str]] = None  
 
     class Config:
         json_schema_extra = {
@@ -47,7 +48,8 @@ class UserCreate(UserBase):
                     "numero": "123",
                     "bairro": "Centro",
                     "cidade": "Cidade Exemplo"
-                }
+                },
+                "materiais_reciclaveis": ["papel", "plástico", "vidro"]
             }
         }
 
