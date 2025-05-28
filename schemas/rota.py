@@ -22,7 +22,7 @@ class RouteCreate(BaseModel):
     pontos: Dict[str, List[float]]   # cada ponto é [latitude, longitude]
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "motorista_id": "1",
                 "residencias_incluidas_ids": ["residencia1", "residencia2"],
@@ -52,7 +52,7 @@ class RouteResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "f3e8b29a-4a87-4e13-9125-bf17f8677e13",
                 "cooperativa_id": "bCoop123",
