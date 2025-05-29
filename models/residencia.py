@@ -1,6 +1,6 @@
-from ast import Str
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from pydantic import BaseModel
+
 
 class EnderecoModel(BaseModel):
     logradouro: str
@@ -8,10 +8,12 @@ class EnderecoModel(BaseModel):
     bairro: str
     cidade: str
 
+
 class ResidenceModel(BaseModel):
     id: Optional[str] = None
-    user_id: str  
+    user_id: str
     endereco: EnderecoModel
-    location: Dict[str, float]  # {"lat": ..., "lng": ...} -> botao do maps acessar sua loc
+    location: Dict[
+        str, float
+    ]  # {"lat": ..., "lng": ...} -> botao do maps acessar sua loc
     coletavel: bool = False
-    

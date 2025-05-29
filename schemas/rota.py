@@ -1,25 +1,26 @@
 from pydantic import BaseModel
 from typing import Dict, List
 from datetime import date, time
+from models.rota import RotaModel
+
 
 class FeedbackSchema(BaseModel):
     residencia_id: str
     coletado: bool
+
     class Config:
         json_schema_extra = {
-            "example": {
-                "residencia_id": "residencia1",
-                "coletado": True
-            }
+            "example": {"residencia_id": "residencia1", "coletado": True}
         }
 
-class RouteCreate(BaseModel):
+
+class RouteCreate(RotaModel):
     motorista_id: str
     residencias_incluidas_ids: List[str]
     bairro: str
     data: date
     hora_inicio: time
-    pontos: Dict[str, List[float]]   # cada ponto é [latitude, longitude]
+    pontos: Dict[str, List[float]]  # cada ponto é [latitude, longitude]
 
     class Config:
         json_schema_extra = {
@@ -30,16 +31,16 @@ class RouteCreate(BaseModel):
                 "data": "2023-10-01",
                 "hora_inicio": "08:00:00",
                 "pontos": {
-                    "fixo_0": [ -9.649848, -35.708949 ],
-                    "fixo_1": [ -9.660184, -35.735163 ],
-                    "residencia1": [ -23.5505, -46.6333 ],
-                    "residencia2": [ -23.5510, -46.6340 ]
-                }
+                    "fixo_0": [-9.649848, -35.708949],
+                    "fixo_1": [-9.660184, -35.735163],
+                    "residencia1": [-23.5505, -46.6333],
+                    "residencia2": [-23.5510, -46.6340],
+                },
             }
         }
 
 
-class RouteResponse(BaseModel):
+class RouteResponse(RotaModel):
     id: str
     cooperativa_id: str
     motorista_id: str
@@ -48,7 +49,7 @@ class RouteResponse(BaseModel):
     data: date
     hora_inicio: time
     status: bool
-    pontos: Dict[str, List[float]]   
+    pontos: Dict[str, List[float]]
 
     class Config:
         from_attributes = True
@@ -59,17 +60,17 @@ class RouteResponse(BaseModel):
                 "motorista_id": "motorista456",
                 "residencias_incluidas_ids": [
                     "7154fa6d-cc84-4326-a0af-e3ea8c1770d4",
-                    "efcee48a-2cfd-4fed-8e67-b21d6c3f39f1"
+                    "efcee48a-2cfd-4fed-8e67-b21d6c3f39f1",
                 ],
                 "bairro": "Centro",
                 "data": "2025-05-22",
                 "hora_inicio": "08:00:00",
                 "status": True,
                 "pontos": {
-                    "fixo_0": [ -9.649848, -35.708949 ],
-                    "fixo_1": [ -9.660184, -35.735163 ],
-                    "7154fa6d-cc84-4326-a0af-e3ea8c1770d4": [ -23.5505, -46.6333 ],
-                    "efcee48a-2cfd-4fed-8e67-b21d6c3f39f1": [ -23.5510, -46.6340 ]
-                }
+                    "fixo_0": [-9.649848, -35.708949],
+                    "fixo_1": [-9.660184, -35.735163],
+                    "7154fa6d-cc84-4326-a0af-e3ea8c1770d4": [-23.5505, -46.6333],
+                    "efcee48a-2cfd-4fed-8e67-b21d6c3f39f1": [-23.5510, -46.6340],
+                },
             }
         }
