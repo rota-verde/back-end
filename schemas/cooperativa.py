@@ -65,9 +65,10 @@ class CooperativaResponse(BaseModel):
     id: str
     nome_usuario: str
     nome_cooperativa: str
+    materiais_reciclaveis: List[str]
     area_atuacao: List[str]
-    location: Dict[str, float]
-    endereco: Dict[str, List[str]]
+    endereco: Optional[Dict] = None
+    location: Optional[Dict[str, float]] = None
 
     class Config:
         json_schema_extra = {
@@ -75,13 +76,17 @@ class CooperativaResponse(BaseModel):
                 "id": "123",
                 "nome_usuario": "João Silva",
                 "nome_cooperativa": "Coop Verde",
-                "area_atuacao": ["Reciclagem", "Compostagem"],
+                "materiais_reciclaveis": ["Papel", "Plástico", "Vidro"],
+                "area_atuacao": ["Centro", "Vila Mariana"],
+                "endereco": {
+                    "logradouro": "Rua Exemplo",
+                    "numero": "123",
+                    "bairro": "Centro",
+                    "cidade": "São Paulo"
+                },
                 "location": {
                     "latitude": -23.5505,
                     "longitude": -46.6333
-                },
-                "endereco": {
-                    "bairros_atendidos": ["Centro", "Vila Mariana"]
                 }
             }
         }
