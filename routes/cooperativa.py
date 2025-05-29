@@ -305,7 +305,7 @@ async def listar_cooperativa(coop_id: str, request: Request):
 
 
 #fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
-@coop_router.get("/residencias/area_atuacao/{coop_id}", response_model=List[EnderecoModel])
+@coop_router.get("/residencias/{coop_id}", response_model=List[EnderecoModel])
 async def listar_residencias_coop(coop_id: str, request: Request):
     verificar_usuario(coop_id)
 
