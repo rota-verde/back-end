@@ -172,5 +172,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
+./back-end/rota-verde-ea753-firebase-adminsdk-fbsvc-bf3cc22a45.json
 *.json
