@@ -1,23 +1,26 @@
+import os
+from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import pyrebase
-
+load_dotenv()
 
 firebaseConfig = {
-  "apiKey": "AIzaSyBiAxQppDfYxUpWytRjfb_Mo_6fkNKvtb4",
-  "authDomain": "rota-verde-ea753.firebaseapp.com",
-  "databaseURL": "https://rota-verde-ea753-default-rtdb.firebaseio.com",
-  "projectId": "rota-verde-ea753",
-  "storageBucket": "rota-verde-ea753.firebasestorage.app",
-  "messagingSenderId": "578295814689",
-  "appId": "1:578295814689:web:c0de33ea82560918f0e160",
-  "measurementId": "G-W99FZCEJS3"
+  "apiKey": os.environ.get("FIREBASE_API_KEY"),
+  "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
+  "databaseURL": os.environ.get("FIREBASE_DATABASE_URL"),
+  "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
+  "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
+  "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
+  "appId": os.environ.get("FIREBASE_APP_ID"),
+  "measurementId": os.environ.get("FIREBASE_MEASUREMENT_ID") 
 }
 
 firebase_instance = pyrebase.initialize_app(firebaseConfig)
-cred = credentials.Certificate("./rota-verde-ea753-firebase-adminsdk-fbsvc-bf3cc22a45.json")
+cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
