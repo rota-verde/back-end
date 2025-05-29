@@ -33,7 +33,7 @@ async def register_user(user: UserCreate):
 
         db.collection("usuarios").document(uid).set(user_data)
         if user.role == "cidadao" and user.endereco:
-            db.collection("usuarios").document(uid).collection("residencias").set(user.endereco.model_dump())
+            db.collection("usuarios").document(uid).collection("residencias").document(uid).set(user.endereco.model_dump())
 
         return UserResponse(**user_data)
     except auth.EmailAlreadyExistsError:
