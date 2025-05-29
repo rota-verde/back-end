@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from firebase_config import db
-from models.residencia import EnderecoModel
+from models.residencia import EnderecoModel, ResidenceModel
 from models.rota import RotaModel
 from schemas.cooperativa import RotaUpdate, CooperativaResponse
 from schemas.motorista import MotoristaCreate, MotoristaResponse
@@ -228,21 +228,6 @@ async def listar_rotas_hoje(request: Request):
         rotas_hoje.append(RouteResponse(**doc.to_dict()))
     return rotas_hoje
 
-
-# @coop_router.get("/feedbacks/{rota_id}", response_model=RouteResponse)
-# async def coletar_feedbacks_diario(rota_id: str,user_id: str, request: Request):
-
-#     verificar_usuario(user_id)
-# <<<<<<< HEAD
-    
-# =======
-
-
-#     # A lógica para coletar feedbacks será implementada depois
-# >>>>>>> 7caae80e1f944a5424be031cecb7bbc8c490ec5c
-#     pass
-
-
 @coop_router.get("/listar", response_model=List[CooperativaResponse])
 async def listar_cooperativas():
     try:
@@ -267,7 +252,7 @@ async def listar_cooperativas():
         return cooperativas
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar cooperativas: {str(e)}")
-    
+
 #fetch a specific cooperativa by coop_id
 @coop_router.get("/cooperativa/{coop_id}", response_model=CooperativaResponse)
 async def listar_cooperativa(coop_id: str, request: Request):
@@ -284,10 +269,10 @@ async def listar_cooperativa(coop_id: str, request: Request):
     if coop_data.get("role") != "cooperativa":
         raise HTTPException(status_code=403, detail="Acesso negado. O ID fornecido não corresponde a uma cooperativa.")
 
-    
+
     try:
         cooperativa_formatada = {
-            "id": coop_doc.id,  
+            "id": coop_doc.id,
             "nome_usuario": coop_data.get("nome_usuario", ""),
             "nome_cooperativa": coop_data.get("nome_cooperativa", ""),
             "area_atuacao": coop_data.get("area_atuacao", []),
@@ -305,7 +290,7 @@ async def listar_cooperativa(coop_id: str, request: Request):
 
 
 #fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
-@coop_router.get("/residencias/{coop_id}", response_model=List[EnderecoModel])
+@coop_router.get("/residencias/{coop_id}", response_model=List[ResidenceModel])
 async def listar_residencias_coop(coop_id: str, request: Request):
     verificar_usuario(coop_id)
 
@@ -313,7 +298,7 @@ async def listar_residencias_coop(coop_id: str, request: Request):
     coop_doc = coop_ref.get()
     if not coop_doc.exists:
         raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
-    
+
     coop_data = coop_doc.to_dict()
     area_atuacao = coop_data.get("area_atuacao", [])
 
@@ -344,7 +329,7 @@ async def listar_materiais_reciclaveis(coop_id: str, request: Request):
     coop_doc = coop_ref.get()
     if not coop_doc.exists:
         raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
-    
+
     coop_data = coop_doc.to_dict()
     materiais_reciclaveis = coop_data.get("materiais_reciclaveis", [])
 
