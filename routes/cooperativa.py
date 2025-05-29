@@ -275,14 +275,34 @@ async def listar_cooperativa(coop_id: str, request: Request):
 
     coop_ref = db.collection(USUARIOS_COLLECTION).document(coop_id)
     coop_doc = coop_ref.get()
+
     if not coop_doc.exists:
         raise HTTPException(status_code=404, detail="Cooperativa não encontrada.")
-    
-    coop_data = coop_doc.to_dict()
-    if coop_data.get("role") != "cooperativa":
-        raise HTTPException(status_code=403, detail="Acesso negado.")
 
-    return CooperativaResponse(**coop_data)
+    coop_data = coop_doc.to_dict()
+
+    if coop_data.get("role") != "cooperativa":
+        raise HTTPException(status_code=403, detail="Acesso negado. O ID fornecido não corresponde a uma cooperativa.")
+
+    
+    try:
+        cooperativa_formatada = {
+            "id": coop_doc.id,  
+            "nome_usuario": coop_data.get("nome_usuario", ""),
+            "nome_cooperativa": coop_data.get("nome_cooperativa", ""),
+            "area_atuacao": coop_data.get("area_atuacao", []),
+            "location": coop_data.get("location", {"latitude": 0.0, "longitude": 0.0}),
+            "endereco": coop_data.get("endereco", {}),
+            "materiais_reciclaveis": coop_data.get("materiais_reciclaveis", [])
+        }
+
+        return CooperativaResponse(**cooperativa_formatada)
+
+    except Exception as e:
+        print(f"Erro ao formatar dados da cooperativa {coop_id}: {e}")
+        print(f"Dados brutos que causaram o erro: {coop_data}")
+        raise HTTPException(status_code=500, detail=f"Erro interno ao processar dados da cooperativa: {str(e)}")
+
 
 #fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
 @coop_router.get("/residencias/area_atuacao/{coop_id}", response_model=List[EnderecoModel])
