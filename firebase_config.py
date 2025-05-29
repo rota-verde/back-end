@@ -20,7 +20,8 @@ firebaseConfig = {
 }
 
 firebase_instance = pyrebase.initialize_app(firebaseConfig)
-cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+#cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+cred_path = './rota-verde-ea753-firebase-adminsdk-fbsvc-68a9d2fdd2.json'
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
