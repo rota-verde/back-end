@@ -65,7 +65,7 @@ class CooperativaResponse(BaseModel):
     id: str
     nome_usuario: str
     nome_cooperativa: str
-    materiais_reciclaveis: List[str]
+    materiais_reciclaveis: Optional[List[str]] = None
     area_atuacao: List[str]
     endereco: Optional[Dict] = None
     location: Optional[Dict[str, float]] = None
