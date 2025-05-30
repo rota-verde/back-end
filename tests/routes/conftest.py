@@ -21,17 +21,23 @@ def client():
 @pytest.fixture
 def mock_firebase(mocker):
     """
-    Cria e retorna mocks para as dependências do Firebase (movido de test_auth_route.py).
-    Esta fixture pode ser usada por qualquer teste que precise simular o Firebase.
+    Cria e retorna mocks para as dependências do Firebase.
+    Agora, aplica o patch em todos os módulos de rota que usam as dependências.
     """
+    # --- Mocks dos objetos ---
     mock_firebase_instance = MagicMock()
-    mocker.patch("routes.auth.firebase_instance", mock_firebase_instance)
-
     mock_db = MagicMock()
-    mocker.patch("routes.auth.db", mock_db)
-
     mock_auth_admin = MagicMock()
+
+    # --- Patches para a rota de autenticação ---
+    mocker.patch("routes.auth.firebase_instance", mock_firebase_instance)
+    mocker.patch("routes.auth.db", mock_db)
     mocker.patch("routes.auth.auth", mock_auth_admin)
+
+    # --- Patches para a rotas de usuarios ---
+    mocker.patch("routes.cidadao.db", mock_db)
+    mocker.patch("routes.motorista.db", mock_db)
+    mocker.patch("routes.cooperativa.db", mock_db)
 
     return mock_firebase_instance, mock_db, mock_auth_admin
 
@@ -75,6 +81,16 @@ PAYLOAD_COOPERATIVA = {
     "materiais_reciclaveis": ["Plástico", "Papelão", "Metal"],
 }
 
+RESIDENCIA_PAYLOAD = {
+    "endereco": {
+        "logradouro": "Avenida Fernandes Lima",
+        "numero": "1024",
+        "bairro": "Farol",
+        "cidade": "Maceió",
+    },
+    "location": {"latitude": -9.6434, "longitude": -35.7333},
+}
+
 
 # --- Fixtures de Payloads (para injeção direta) ---
 
@@ -92,3 +108,46 @@ def motorista_payload():
 @pytest.fixture
 def cooperativa_payload():
     return PAYLOAD_COOPERATIVA.copy()
+
+
+@pytest.fixture
+def residencia_payload():
+    return RESIDENCIA_PAYLOAD.copy()
+
+
+# --- Fixtures de Usuários Já Criados ---
+
+
+@pytest.fixture
+def created_cidadao(client, mock_firebase, cidadao_payload):
+    """
+    Cria um usuário cidadão via API (mock) e retorna seus dados, incluindo o UID.
+    Útil para testes que precisam de um cidadão já existente.
+    """
+    mock_firebase_instance, _, _ = mock_firebase
+    uid = "uid-cidadao-fixture-123"
+
+    # Configura o mock para a chamada de criação de usuário
+    mock_firebase_instance.auth().create_user_with_email_and_password.return_value = {
+        "localId": uid
+    }
+
+    # Faz a chamada de registro
+    response = client.post("/auth/register", json=cidadao_payload)
+    assert response.status_code == 201  # Garante que a criação (mock) foi bem sucedida
+
+    # Retorna o corpo da resposta, que contém o UID e outros dados
+    return response.json()
+
+
+@pytest.fixture
+def created_motorista(client, mock_firebase, motorista_payload):
+    """Cria um usuário motorista via API (mock) e retorna seus dados."""
+    mock_firebase_instance, _, _ = mock_firebase
+    uid = "uid-motorista-fixture-456"
+    mock_firebase_instance.auth().create_user_with_email_and_password.return_value = {
+        "localId": uid
+    }
+    response = client.post("/auth/register", json=motorista_payload)
+    assert response.status_code == 201
+    return response.json()
