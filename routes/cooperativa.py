@@ -335,6 +335,8 @@ async def listar_residencias_coop(coop_id: str, request: Request):
     coords = []
     usuarios_ref = db.collection("usuarios").stream()
 
+    #teste
+
     for usuario in usuarios_ref:
         user_id = usuario.id
         residencias_ref = (
