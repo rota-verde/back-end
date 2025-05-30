@@ -317,7 +317,7 @@ async def listar_cooperativa(coop_id: str, request: Request):
 
 
 # fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
-@coop_router.get("/residencias/{coop_id}", response_model=List[ResidenceModel])
+@coop_router.get("/residencias/{coop_id}", response_model=List[dict])
 async def listar_residencias_coop(coop_id: str, request: Request):
     verificar_usuario(coop_id)
 
@@ -330,9 +330,9 @@ async def listar_residencias_coop(coop_id: str, request: Request):
     area_atuacao = coop_data.get("area_atuacao", [])
 
     if not area_atuacao:
-        raise HTTPException(status_code=404, detail="Nenhuma area encontrado.")
+        raise HTTPException(status_code=404, detail="Nenhuma area encontrada.")
 
-    residencias = []
+    coords = []
     usuarios_ref = db.collection("usuarios").stream()
 
     for usuario in usuarios_ref:
@@ -347,9 +347,17 @@ async def listar_residencias_coop(coop_id: str, request: Request):
 
         for r in residencias_ref:
             r_data = r.to_dict()
-            residencias.append(ResidenceModel(**r_data))
+            location = r_data.get("location")
+            if location and "latitude" in location and "longitude" in location:
+                coords.append({
+                    "id": r.id,
+                    "location": {
+                        "latitude": location["latitude"],
+                        "longitude": location["longitude"]
+                    }
+                })
 
-    return residencias
+    return coords
 
 
 # fetch materias reciclaveis de uma cooperativa
