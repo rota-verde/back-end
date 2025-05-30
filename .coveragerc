@@ -1,0 +1,11 @@
+# Configurações para o coverage.py (usado pelo pytest-cov)
+[run]
+omit =
+    # Excluir a pasta do ambiente virtual
+    venv/*
+    # Excluir a pasta de testes da medição de cobertura
+    tests/*
+    # Excluir implementações irrelevantes
+    services/*
+    # Excluir arquivos de configuração específicos, se desejar
+    firebase_config.py

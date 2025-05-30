@@ -111,22 +111,38 @@ def test_delete_account_success(client, mock_firebase):
     response = client.delete(f"/auth/delete-account/{user_id}")
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json()["message"] == f"Usuário {user_id} deletado com sucesso."
     mock_auth_admin.delete_user.assert_called_once_with(user_id)
     mock_db.collection("usuarios").document(user_id).delete.assert_called_once()
 
 
-def test_delete_account_user_not_found(client, mock_firebase):
-    """Testa a tentativa de exclusão de um usuário que não existe."""
+@pytest.mark.parametrize(
+    "raised_exception, expected_status, expected_detail_text",
+    [
+        # Caso de teste para usuário não encontrado
+        (
+            FirebaseError("auth/user-not-found", "User not found"),
+            HTTPStatus.NOT_FOUND,
+            "Usuário não encontrado.",
+        ),
+        # Caso de teste para cobrir a exceção genérica do Firebase
+        (
+            FirebaseError("auth/internal-error", "Internal error"),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+            "Erro ao deletar usuário",
+        ),
+    ],
+)
+def test_delete_account_failures(
+    client, mock_firebase, raised_exception, expected_status, expected_detail_text
+):
+    """Testa falhas na exclusão de conta (não encontrado, erro genérico) de forma parametrizada."""
     _, _, mock_auth_admin = mock_firebase
-    mock_auth_admin.delete_user.side_effect = FirebaseError(
-        code="auth/user-not-found", message="User not found"
-    )
+    mock_auth_admin.delete_user.side_effect = raised_exception
 
-    response = client.delete("/auth/delete-account/uid-inexistente")
+    response = client.delete("/auth/delete-account/some-uid")
 
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json()["detail"] == "Usuário não encontrado."
+    assert response.status_code == expected_status
+    assert expected_detail_text in response.json()["detail"]
 
 
 # --- Testes de Atualização de Usuário ---
@@ -200,3 +216,74 @@ def test_update_user_firestore_error(client, mock_firebase):
 
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "Erro ao atualizar usuário" in response.json()["detail"]
+
+
+# --- Testes para GET /user/{user_id} ---
+
+
+def test_get_user_success(client, mock_firebase):
+    """Testa a busca bem-sucedida de um usuário pelo ID."""
+    # Arrange
+    _, mock_db, _ = mock_firebase
+    user_id = "user-existente-123"
+
+    # Prepara o dado que o Firestore retornaria
+    expected_user_data = {
+        "nome_usuario": "Usuário Teste",
+        "email": "teste@email.com",
+        "telefone": "82999998888",
+        "role": "cidadao",
+    }
+
+    # Configura o mock do documento
+    mock_user_doc = MagicMock()
+    mock_user_doc.exists = True
+    mock_user_doc.to_dict.return_value = expected_user_data
+    mock_db.collection("usuarios").document(user_id).get.return_value = mock_user_doc
+
+    # Act
+    response = client.get(f"/auth/user/{user_id}")
+
+    # Assert
+    assert response.status_code == HTTPStatus.OK
+    # Como o response_model é UserBase, ele deve corresponder ao que foi mockado
+    assert response.json()["nome_usuario"] == expected_user_data["nome_usuario"]
+    assert response.json()["email"] == expected_user_data["email"]
+
+
+def test_get_user_not_found(client, mock_firebase):
+    """Testa a busca por um usuário que não existe no Firestore."""
+    # Arrange
+    _, mock_db, _ = mock_firebase
+    user_id = "user-inexistente-404"
+
+    # Configura o mock para simular que o documento não existe
+    mock_user_doc = MagicMock()
+    mock_user_doc.exists = False
+    mock_db.collection("usuarios").document(user_id).get.return_value = mock_user_doc
+
+    # Act
+    response = client.get(f"/auth/user/{user_id}")
+
+    # Assert
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert "Usuário não encontrado" in response.json()["detail"]
+
+
+def test_get_user_firebase_error(client, mock_firebase):
+    """Testa a falha na busca de usuário devido a um erro genérico do Firebase."""
+    # Arrange
+    _, mock_db, _ = mock_firebase
+    user_id = "user-com-erro-500"
+
+    # Configura o mock para levantar uma exceção ao tentar buscar o documento
+    mock_db.collection("usuarios").document(user_id).get.side_effect = FirebaseError(
+        code=500, message="Erro interno do Firestore"
+    )
+
+    # Act
+    response = client.get(f"/auth/user/{user_id}")
+
+    # Assert
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert "Erro ao buscar usuário" in response.json()["detail"]

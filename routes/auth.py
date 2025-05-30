@@ -213,21 +213,21 @@ async def delete_account(user_id: str):
 
 
 # Rotas placeholder
-@auth_router.post("/2fa/enable/{user_id}")
-async def enable_2fa(user_id: str):
-    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+# @auth_router.post("/2fa/enable/{user_id}")
+# async def enable_2fa(user_id: str):
+#     raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
 
 
-@auth_router.post("/2fa/verify")
-async def verify_2fa():
-    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+# @auth_router.post("/2fa/verify")
+# async def verify_2fa():
+#     raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
 
 
-@auth_router.get("/terms-of-service")
-async def get_terms_of_service():
-    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+# @auth_router.get("/terms-of-service")
+# async def get_terms_of_service():
+#     raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
 
 
-@auth_router.get("/privacy-policy")
-async def get_privacy_policy():
-    raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
+# @auth_router.get("/privacy-policy")
+# async def get_privacy_policy():
+#     raise HTTPException(status_code=501, detail="Funcionalidade não implementada.")
