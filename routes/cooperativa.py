@@ -347,7 +347,7 @@ async def listar_residencias_coop(coop_id: str, request: Request):
 
         for r in residencias_ref:
             r_data = r.to_dict()
-            residencias.append(EnderecoModel(**r_data.get("endereco", {})))
+            residencias.append(ResidenceModel(**r_data))
 
     return residencias
 
