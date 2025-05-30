@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from firebase_config import db
 from models.residencia import EnderecoModel, ResidenceModel
+from models.residencia import EnderecoModel, ResidenceModel
 from models.rota import RotaModel
 from schemas.cooperativa import RotaUpdate, CooperativaResponse
 from schemas.motorista import MotoristaCreate, MotoristaResponse
@@ -274,6 +275,11 @@ async def listar_cooperativas():
             status_code=500, detail=f"Erro ao listar cooperativas: {str(e)}"
         )
 
+        # fetch a specific cooperativa by coop_id
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao listar cooperativas: {str(e)}"
+        )
+
 
 # fetch a specific cooperativa by coop_id
 @coop_router.get("/cooperativa/{coop_id}", response_model=CooperativaResponse)
@@ -294,8 +300,14 @@ async def listar_cooperativa(coop_id: str, request: Request):
             detail="Acesso negado. O ID fornecido não corresponde a uma cooperativa.",
         )
 
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado. O ID fornecido não corresponde a uma cooperativa.",
+        )
+
     try:
         cooperativa_formatada = {
+            "id": coop_doc.id,
             "id": coop_doc.id,
             "nome_usuario": coop_data.get("nome_usuario", ""),
             "nome_cooperativa": coop_data.get("nome_cooperativa", ""),
@@ -316,6 +328,8 @@ async def listar_cooperativa(coop_id: str, request: Request):
         )
 
 
+# fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
+@coop_router.get("/residencias/{coop_id}", response_model=List[ResidenceModel])
 # fetch tds as residencias que estao na mesma area de atuacao/bairro que uma determinada coop
 @coop_router.get("/residencias/{coop_id}", response_model=List[ResidenceModel])
 async def listar_residencias_coop(coop_id: str, request: Request):
